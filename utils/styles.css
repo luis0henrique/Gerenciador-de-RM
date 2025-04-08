@@ -1,0 +1,507 @@
+/* === LIGHT THEME === */
+/* $$LIGHT_START$$ */
+QMainWindow {
+    /* background-color: #f5f5f5; */
+    background-image: url(assets/images/background_light.png);
+    background-repeat: no-repeat;
+    background-attachment: fixed;
+    /* background-size: 100%; */
+    /* background-position: bottom; */
+    background-position: center;
+}
+
+/* ===== GENERAL WIDGETS ===== */
+QWidget {
+    font-family: 'Segoe UI', Arial, sans-serif;
+    font-size: 10pt;
+}
+
+/* ===== BUTTONS ===== */
+QPushButton {
+    padding: 6px 12px;
+    min-width: 80px;
+    max-width: 150px;
+    font-weight: 500;
+    background-color: #46b3e6;
+    color: white;
+    border: 1px solid #2ca1d8;
+    border-radius: 0;
+}
+
+QPushButton:hover {
+    background-color: #39a9c5;
+}
+
+QPushButton:pressed {
+    background-color: #298ba9;
+}
+
+#search_btn {
+    background-color: #46b3e6;
+    color: white;
+    min-width: 10px;    
+    max-width: 10px;    
+    /* min-height: 20px;    */
+    max-height: 20px;   
+    border: 1px solid #2ca1d8;
+    margin-left: 0;
+    border-radius: 0;
+}
+
+#search_btn:hover {
+    background-color: #39a9c5;
+}
+
+#search_btn:pressed {
+    background-color: #298ba9;
+}
+
+/* Add Aluno Window Buttons */
+.btn_add_alunos {
+    background-color: #18a547;
+    color: white;
+    border: 1px solid rgb(21, 173, 80);
+    /* border: 1px solid #d6d6d6; */
+    border-radius: 0;
+}
+
+.btn_add_alunos:hover {
+    background-color: #1bbf5b;
+}
+
+.btn_add_alunos:pressed {
+    background-color: #148d3c;
+}
+
+.btn_cancel {
+    background-color: #f44336;
+    color: white;
+    border: 1px solid rgb(187, 37, 26);
+    border-radius: 0;
+}
+
+.btn_cancel:hover {
+    background-color: #f57c7f;
+}
+
+.btn_cancel:pressed {
+    background-color: #c62828;
+}
+
+
+/* ===== INPUT FIELDS ===== */
+QLineEdit, QTextEdit, QPlainTextEdit {
+    border: 1px solid #bdbdbd;
+    border-radius: 3px;
+    padding: 5px;
+    background: white;
+    selection-background-color: #46b3e6;
+    selection-color: white;
+}
+
+QLineEdit:focus, QTextEdit:focus, QPlainTextEdit:focus {
+    border: 1px solid #46b3e6;
+    border-radius: 0;
+}
+
+#search_field {
+    border: 1px solid #bdbdbd;
+    padding: 6px;
+    margin-right: 0;
+    border-radius: 0;
+}
+
+/* ===== TABLES ===== */
+QTableView {
+    background-color: white;
+    selection-background-color: #298ba9;
+    gridline-color: #cacaca;
+    border: 1px solid #bdbdbd;
+    border-radius: 0;
+    font-size: 16px;
+    border-radius: 0;
+}
+
+QTableView::item:hover {
+    background-color: #7bc3e4;
+    padding-left: 5px;
+}
+
+QTableView::item:selected {
+    background-color: #008dce;
+    color: white;
+}
+
+QHeaderView {
+    background-color: #f5f5f5;
+}
+
+QHeaderView::section {
+    background-color: #46b3e6;
+    padding: 6px;
+    border: 1px solid #2ca1d8;
+    font-weight: bold;
+    color: #eeeeee;
+}
+
+QHeaderView::section:checked {
+    background-color: #008dce;
+    color: white;
+}
+
+/* Add Aluno Table */
+QTableWidget {
+    background-color: white;
+    gridline-color: #cacaca;
+    border: 1px solid #bdbdbd;
+    border-radius: 0;
+}
+
+QTableWidget::corner {
+    background-color: #46b3e6;
+    border: 1px solid #2ca1d8;
+    border-radius: 0;
+}
+
+QTableWidget::item:selected {
+    background-color: #008dce;
+    color: white;
+    /* padding: 15px; */
+}
+
+
+/* ===== STATUS BAR - RODAPÉ ===== */
+QStatusBar {
+    background: #e0e0e0;
+    border-top: 1px solid #bdbdbd;
+}
+
+/* ===== MENU BAR ===== */
+QMenuBar {
+    background-color: #eeeeee;
+    font-size: 11px;
+    border-bottom: 1px solid #dfdfdf;
+}
+
+QMenuBar::item {
+    padding: 5px 10px;
+    background: transparent;
+}
+
+QMenuBar::item:selected {
+    background-color: #bdbdbd;
+}
+
+QMenuBar::item:pressed {
+    background-color: #9e9e9e;
+}
+
+QMenu {
+    background-color: white;
+    border: 1px solid #bdbdbd;
+    padding: 5px;
+}
+
+QMenu::item {
+    padding: 5px 25px 5px 20px;
+}
+
+QMenu::item:selected {
+    background-color: #39a9c5;
+    color: white;
+}
+
+QMenu::separator {
+    height: 1px;
+    background: #bdbdbd;
+    margin: 5px 0;
+}
+
+/* ===== DIALOGS ===== */
+QDialog {
+    background-color: #f5f5f5;
+}
+
+QLabel {
+    color: #212121;
+}
+
+/* $$LIGHT_END$$ */
+
+
+/* === DARK THEME === */
+/* $$DARK_START$$ */
+QMainWindow {
+    /* background-color: #2b2b2b; */
+    background-image: url(assets/images/background_dark.png);
+    background-repeat: no-repeat;
+    background-attachment: fixed;
+    /* background-size: 100%; */
+    /* background-position: bottom; */
+    background-position: center;
+}
+
+/* ===== GENERAL WIDGETS ===== */
+QWidget {
+    font-family: 'Segoe UI', Arial, sans-serif;
+    font-size: 10pt;
+}
+
+/* ===== BUTTONS ===== */
+QPushButton {
+    padding: 6px 12px;
+    min-width: 80px;
+    max-width: 150px;
+    font-weight: 500;
+    background-color: #3c6e91;
+    color: white;
+    border: 1px solid #24677f;
+	border-radius: 0;
+}
+
+QPushButton:hover {
+    background-color: #3b8fad;
+}
+
+QPushButton:pressed {
+    background-color: #1f5366;
+}
+
+#search_btn {
+    background-color: #3c6e91;
+    color: white;
+    min-width: 10px;
+    max-width: 10px;
+    max-height: 20px;
+    border: 1px solid #24677f;
+    margin-left: 0;
+    border-radius: 0;
+}
+
+#search_btn:hover {
+    background-color: #3b8fad;
+}
+
+#search_btn:pressed {
+    background-color: #1f5366;
+}
+
+/* Add Aluno Window Buttons */
+.btn_add_alunos {
+    background-color: #218c4d; /* Verde escuro */
+    color: white;
+    border: 1px solid #1a7040;
+    border-radius: 0;
+}
+
+.btn_add_alunos:hover {
+    background-color: #29a65b;
+}
+
+.btn_add_alunos:pressed {
+    background-color: #176636;
+}
+
+.btn_cancel {
+    background-color: #b0352f; /* Vermelho queimado */
+    color: white;
+    border: 1px solid #8f2924;
+    border-radius: 0;
+}
+
+.btn_cancel:hover {
+    background-color: #cd5c58;
+}
+
+.btn_cancel:pressed {
+    background-color: #8b1f1a;
+}
+
+
+/* ===== INPUT FIELDS ===== */
+QLineEdit, QTextEdit, QPlainTextEdit {
+    border: 1px solid #5e5e5e;
+    border-radius: 3px;
+    padding: 5px;
+    background: #3c3c3c;
+    color: #e0e0e0;
+    selection-background-color: #3c6e91;
+    selection-color: white;
+}
+
+QLineEdit:focus, QTextEdit:focus, QPlainTextEdit:focus {
+    border: 1px solid #3c6e91;
+    border-radius: 0;
+}
+
+#search_field {
+    border: 1px solid #555555;
+    padding: 6px;
+    margin-right: 0;
+    border-radius: 0;
+}
+
+/* ===== TABLES ===== */
+QTableView {
+    background-color: #3c3c3c;
+    selection-background-color: #2e536c; /* Azul escuro */
+    gridline-color: #555555;
+    border: 1px solid #5e5e5e;
+    border-radius: 0;
+    font-size: 16px;
+}
+
+QTableView::item {
+    color: #e0e0e0;
+}
+
+QTableView::item:hover {
+    background-color: #4a7b94;
+    padding-left: 5px;
+}
+
+QTableView::item:selected {
+    background-color: #1f4055;
+    color: white;
+}
+
+QHeaderView {
+    background-color: #2b2b2b;
+}
+
+QHeaderView::section {
+    background-color: #3c6e91; /* Azul escuro */
+    padding: 6px;
+    border: 1px solid #2f5c77;
+    font-weight: bold;
+    color: #e0e0e0;
+}
+
+QHeaderView::section:checked {
+    background-color: #1f4055;
+    color: white;
+}
+
+/* Add Aluno Table */
+QTableWidget {
+    background-color: #3c3c3c;
+    gridline-color: #555555;
+    border: 1px solid #555555;
+    border-radius: 0;
+}
+
+QTableWidget::item {
+    color: #e0e0e0;
+}
+
+QTableWidget::corner {
+    background-color: #3c6e91;
+    border: 1px solid #2f5c77;
+    border-radius: 0;
+}
+
+QTableWidget::item:selected {
+    background-color: #1f4055;
+    color: white;
+}
+
+
+/* ===== STATUS BAR - RODAPÉ ===== */
+QStatusBar {
+    background: #424242;
+    border-top: 1px solid #555555;
+}
+
+
+/* ===== MENU BAR ===== */
+QMenuBar {
+    background-color: #424242;
+    font-size: 11px;
+    border-bottom: 1px solid #555555;
+}
+
+QMenuBar::item {
+    padding: 5px 10px;
+    background: transparent;
+    color: #e0e0e0;
+}
+
+QMenuBar::item:selected {
+    background-color: #555555;
+}
+
+QMenuBar::item:pressed {
+    background-color: #757575;
+}
+
+QMenu {
+    background-color: #424242;
+    border: 1px solid #555555;
+    padding: 5px;
+}
+
+QMenu::item {
+    padding: 5px 25px 5px 20px;
+    color: #e0e0e0;
+}
+
+QMenu::item:selected {
+    background-color: #2a6b82; /* Azul escuro para seleção */
+    color: white;
+}
+
+QMenu::separator {
+    height: 1px;
+    background: #555555;
+    margin: 5px 0;
+}
+
+QMessageBox {
+    background-color: #ff0000;
+    max-width: 20px;
+}
+
+
+/* ===== DIALOGS ===== */
+QDialog {
+    background-color: #2e2e2e; /* alterado para tema escuro */
+}
+
+QLabel {
+    color: #e0e0e0;
+}
+
+/* $$DARK_END$$ */
+
+
+
+/* ============================================================== */
+
+/* === MESSAGE BOX STYLES === */
+/* $$MESSAGE_BOX_START$$ */
+QMessageBox {
+    background-color: #f5f5f5;
+    max-width: 20px;
+}
+
+QMessageBox QLabel {
+    /* min-width: 450px; */
+    color: #212121;
+    font-size: 11pt;
+}
+
+QMessageBox QTextEdit {
+    min-width: 10px;
+    min-height: 150px;
+    background-color: white;
+    color: #212121;
+    border: 1px solid #bdbdbd;
+    font-family: Consolas, monospace;
+}
+
+QMessageBox QPushButton {
+    min-width: 80px;
+    padding: 5px 10px;
+}
+
+/* $$MESSAGE_BOX_END$$ */
