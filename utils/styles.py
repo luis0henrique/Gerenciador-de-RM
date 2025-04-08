@@ -1,59 +1,5 @@
 import os
 import json
-import importlib
-from PyQt5.QtCore import Qt, QObject
-
-print("🔵 Módulo de estilos carregado inicialmente")
-
-def force_reload_styles(app):
-    """Força o recarregamento completo dos estilos"""
-    try:
-        print("\n🔵 Iniciando recarregamento de estilos...")
-
-        # 1. Importa o módulo de forma absoluta
-        import utils.styles as styles_module
-
-        # 2. Limpa o cache de importação
-        importlib.invalidate_caches()
-
-        # 3. Recarrega o módulo
-        styles_module = importlib.reload(styles_module)
-
-        # 4. Aplica os novos estilos
-        new_stylesheet = styles_module.get_stylesheet() + styles_module.get_messagebox_stylesheet()
-        app.setStyleSheet(new_stylesheet)
-
-        # 5. Atualiza todos os widgets
-        for widget in app.allWidgets():
-            if hasattr(widget, 'setStyleSheet'):
-                widget.setStyleSheet(new_stylesheet)
-
-        print("✅ Estilos recarregados com sucesso!")
-        return True
-
-    except Exception as e:
-        print(f"❌ Erro ao recarregar estilos: {repr(e)}")
-        import traceback
-        traceback.print_exc()
-        return False
-
-class StyleReloader(QObject):
-    def __init__(self, app):
-        super().__init__()
-        self.app = app
-
-    def eventFilter(self, obj, event):
-        if event.type() == event.KeyPress and event.key() == Qt.Key_F5:
-            force_reload_styles(self.app)
-            return True
-        return super().eventFilter(obj, event)
-
-def install_style_reloader(app):
-    """Instala o recarregador de estilos na aplicação"""
-    print("Instalando recarregador de estilos...")
-    reloader = StyleReloader(app)
-    app.installEventFilter(reloader)
-    return reloader
 
 def _read_css_section(section_name):
     """Lê uma seção específica do arquivo CSS usando marcadores."""
@@ -88,7 +34,7 @@ def get_dark_stylesheet():
 def get_messagebox_stylesheet():
     return _read_css_section("MESSAGE_BOX")
 
-# Funções auxiliares (mantidas conforme seu código original)
+# Funções auxiliares (mantidas conforme código original)
 def load_theme_preference():
     """Carrega a preferência de tema salva"""
     try:

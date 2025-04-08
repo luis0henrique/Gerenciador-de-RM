@@ -23,7 +23,7 @@ class TableManager:
         self.table.verticalHeader().setDefaultSectionSize(32)
 
         model = QStandardItemModel()
-        model.setHorizontalHeaderLabels(["Nome do Aluno", "RM"])
+        model.setHorizontalHeaderLabels(["Nome do(a) Aluno(a)", "RM"])
         self.proxy_model.setSourceModel(model)
         self.table.setModel(self.proxy_model)
 
@@ -45,7 +45,7 @@ class TableManager:
         self.search_active = False
 
         model = QStandardItemModel()
-        model.setHorizontalHeaderLabels(["Nome do Aluno", "RM"])
+        model.setHorizontalHeaderLabels(["Nome do(a) Aluno(a)", "RM"])
         self.proxy_model.setSourceModel(model)
 
         self._load_data_chunk()
@@ -53,21 +53,21 @@ class TableManager:
 
     def update_table_with_data(self, data):
         model = QStandardItemModel()
-        model.setHorizontalHeaderLabels(["Nome do Aluno", "RM"])
+        model.setHorizontalHeaderLabels(["Nome do(a) Aluno(a)", "RM"])
 
         for _, row in data.iterrows():
-            nome_item = QStandardItem(str(row['Nome do Aluno']))
-            
+            nome_item = QStandardItem(str(row['Nome do(a) Aluno(a)']))
+
             formatted_rm = "{:,.0f}".format(row['RM']).replace(",", ".")
             rm_item = QStandardItem(formatted_rm)
             rm_item.setData(int(row['RM']), Qt.UserRole)
-            
+
             font = QFont()
             font.setBold(True)
             rm_item.setForeground(QColor(Qt.red))
             rm_item.setFont(font)
             rm_item.setTextAlignment(Qt.AlignCenter)
-            
+
             model.appendRow([nome_item, rm_item])
 
         self.proxy_model.setSourceModel(model)
@@ -86,18 +86,18 @@ class TableManager:
 
             model = self.proxy_model.sourceModel()
             for _, row in chunk.iterrows():
-                nome_item = QStandardItem(str(row['Nome do Aluno']))
-                
+                nome_item = QStandardItem(str(row['Nome do(a) Aluno(a)']))
+
                 formatted_rm = "{:,.0f}".format(row['RM']).replace(",", ".")
                 rm_item = QStandardItem(formatted_rm)
                 rm_item.setData(int(row['RM']), Qt.UserRole)
-                
+
                 font = QFont()
                 font.setBold(True)
                 rm_item.setForeground(QColor(Qt.red))
                 rm_item.setFont(font)
                 rm_item.setTextAlignment(Qt.AlignCenter)
-                
+
                 model.appendRow([nome_item, rm_item])
 
             self.current_chunk += 1
@@ -110,7 +110,7 @@ class TableManager:
         self.scroll_connection = self.table.verticalScrollBar().valueChanged.connect(self._on_scroll)
 
     def _on_scroll(self, value):
-        if (self.is_loading or self.full_data is None or 
+        if (self.is_loading or self.full_data is None or
             self.search_active or not hasattr(self, 'full_data')):
             return
 
@@ -131,14 +131,14 @@ class TableManager:
         self.copy_action.setShortcut("Ctrl+C")
         self.copy_action.triggered.connect(self.copy_cell_content)  # Adiciona esta linha
         self.table.customContextMenuRequested.connect(self._show_context_menu)
-    
+
     def _show_context_menu(self, position):
         """Mostra menu de contexto"""
         if self.table.selectedIndexes():
             menu = QMenu(self.table)
             menu.addAction(self.copy_action)
             menu.exec_(self.table.viewport().mapToGlobal(position))
-    
+
     def copy_cell_content(self):
         """Copia conteúdo da célula selecionada"""
         selected = self.table.selectedIndexes()
@@ -146,7 +146,7 @@ class TableManager:
             clipboard = QApplication.clipboard()
             text = selected[0].data(Qt.DisplayRole)
             clipboard.setText(str(text))
-            
+
             # Feedback visual seguro
             if hasattr(self, 'main_window') and hasattr(self.main_window, 'statusBar'):
                 self.main_window.statusBar().showMessage("Conteúdo copiado!", 2000)

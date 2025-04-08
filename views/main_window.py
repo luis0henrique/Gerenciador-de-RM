@@ -8,7 +8,7 @@ from PyQt5.QtGui import QIcon
 from models.excel_manager import ExcelManager
 from utils.helpers import remove_acentos
 from utils.styles import (
-    apply_theme, load_theme_preference, 
+    apply_theme, load_theme_preference,
 )
 from views.components import TableManager
 from views.components.menu import MenuManager
@@ -34,7 +34,7 @@ class MainWindow(QMainWindow, CenterWindowMixin):
         self.table_manager.main_window = self
 
     def _init_ui(self):
-        self.setWindowTitle("Fichas Remissivas")
+        self.setWindowTitle("Gerenciador de RMs")
         self.setWindowIcon(QIcon('assets/images/icon.png'))
         self.setMinimumSize(QSize(800, 750))
         self.MAX_CONTENT_WIDTH = 750
@@ -60,7 +60,7 @@ class MainWindow(QMainWindow, CenterWindowMixin):
         # Toolbar
         toolbar = QHBoxLayout()
         self.btn_load = QPushButton("Carregar Arquivo")
-        self.btn_add = QPushButton(" Adicionar Aluno")
+        self.btn_add = QPushButton(" Adicionar Aluno(a)")
         self.btn_add.setIcon(QIcon("assets/images/add_icon_white.png"))
         self.btn_save = QPushButton("  Salvar")
         self.btn_save.setIcon(QIcon("assets/images/save_icon_white.png"))
@@ -98,13 +98,13 @@ class MainWindow(QMainWindow, CenterWindowMixin):
 
         for btn in [self.btn_load, self.btn_add, self.btn_save, self.search_btn]:
             add_shadow(btn)
-        
+
         add_shadow(self.search_field)
         add_shadow(self.table)
 
         # Status bar
         self.status_bar = self.statusBar()
-        
+
         self.center_window()  # Centraliza a janela
 
     def _connect_signals(self):
@@ -159,11 +159,11 @@ class MainWindow(QMainWindow, CenterWindowMixin):
         if normalized_term.isdigit():
             result = self.excel_manager.df[self.excel_manager.df['RM'].astype(str) == normalized_term]
         else:
-            mask = self.excel_manager.df['Nome do Aluno'].apply(
+            mask = self.excel_manager.df['Nome do(a) Aluno(a)'].apply(
                 lambda x: normalized_term in remove_acentos(str(x).lower()))
             result = self.excel_manager.df[mask]
 
-        result_sorted = result.sort_values('Nome do Aluno')
+        result_sorted = result.sort_values('Nome do(a) Aluno(a)')
         self._update_table_with_data(result_sorted)
         self.table.sortByColumn(0, Qt.AscendingOrder)
 
@@ -194,7 +194,7 @@ class MainWindow(QMainWindow, CenterWindowMixin):
                         self.current_file = file_path
                         self._update_table()
                         self.file_ops._add_recent_file(file_path)
-                        self.setWindowTitle(f"Gerenciador de Alunos - {os.path.basename(file_path)}")
+                        self.setWindowTitle(f"Gerenciador de RMs - {os.path.basename(file_path)}")
                         return True
             except Exception as e:
                 print(f"Erro ao carregar último arquivo: {e}")

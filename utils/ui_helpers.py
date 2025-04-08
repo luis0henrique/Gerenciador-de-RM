@@ -12,7 +12,7 @@ class CenterWindowMixin:
 def add_shadow(widget, blur=5, x_offset=1, y_offset=1, color=Qt.gray):
     """
     Adiciona efeito de sombra a um widget
-    
+
     Args:
         widget: O widget que receberá a sombra
         blur: Raio do desfoque da sombra (default: 5)

@@ -10,7 +10,7 @@ from utils.styles import (get_current_stylesheet)
 
 class AddAlunoWindow(QDialog, CenterWindowMixin):
     aluno_adicionado_signal = pyqtSignal()
-    
+
     def __init__(self, parent=None, data_manager=None):
         super().__init__(parent)
         # Configurações de janela
@@ -21,7 +21,7 @@ class AddAlunoWindow(QDialog, CenterWindowMixin):
 
         self.setStyleSheet(get_current_stylesheet())
         self.data_manager = data_manager
-        self.setWindowTitle("Adicionar Alunos em Lote")
+        self.setWindowTitle("Adicionar Alunos(as) em Lote")
 
         # Configurações de tamanho
         self.MINIMUM_WIDTH = 800
@@ -34,10 +34,10 @@ class AddAlunoWindow(QDialog, CenterWindowMixin):
         # Inicializa a UI antes de centralizar
         self._setup_ui()
         self._connect_signals()
-        
+
         # Centraliza a janela (agora usando o método do mixin)
         self.center_window()
-        
+
         # Opcional: Abrir maximizada
         #self.showMaximized()
 
@@ -68,7 +68,7 @@ class AddAlunoWindow(QDialog, CenterWindowMixin):
 
         # Tabela para entrada em lote (50 linhas)
         self.table = QTableWidget(50, 2)
-        self.table.setHorizontalHeaderLabels(["Nome do Aluno", "RM"])
+        self.table.setHorizontalHeaderLabels(["Nome do(a) Aluno(a)", "RM"])
         self.table.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
 
         # Configuração da tabela
@@ -82,7 +82,7 @@ class AddAlunoWindow(QDialog, CenterWindowMixin):
 
         # Botões
         btn_layout = QHBoxLayout()
-        self.btn_add_alunos = QPushButton("Adicionar Alunos")
+        self.btn_add_alunos = QPushButton("Adicionar Alunos(as)")
         self.btn_add_alunos.setProperty("class", "btn_add_alunos")
         self.btn_cancel = QPushButton("Cancelar")
         self.btn_cancel.setProperty("class", "btn_cancel")
@@ -92,7 +92,7 @@ class AddAlunoWindow(QDialog, CenterWindowMixin):
         btn_layout.addWidget(self.btn_cancel)
 
         # Adiciona componentes ao content_layout
-        content_layout.addWidget(QLabel("Preencha os dados dos alunos (Nome|RM):"))
+        content_layout.addWidget(QLabel("Preencha os dados dos(as) alunos(as) (Nome|RM):"))
         content_layout.addWidget(self.table)
         content_layout.addLayout(btn_layout)
 
@@ -104,11 +104,11 @@ class AddAlunoWindow(QDialog, CenterWindowMixin):
     def resizeEvent(self, event):
         """Ajusta dinamicamente o layout ao redimensionar"""
         super().resizeEvent(event)
-        
+
         if hasattr(self, 'content_widget'):
             # Calcula a largura efetiva do conteúdo
             content_width = min(self.width(), self.MAX_CONTENT_WIDTH)
-            
+
             # Ajusta a largura do content_widget
             self.content_widget.setFixedWidth(content_width)
 
@@ -159,21 +159,21 @@ class AddAlunoWindow(QDialog, CenterWindowMixin):
         """Processa todos os alunos adicionados de forma otimizada"""
         alunos = self._coletar_dados_tabela()
         if not alunos:
-            QMessageBox.warning(self, "Aviso", "Nenhum aluno válido para adicionar")
+            QMessageBox.warning(self, "Aviso", "Nenhum(a) aluno(a) válido(a) para adicionar")
             return
 
         # Pré-processamento em lote
         resultados = self._validar_em_lote(alunos)
-        
+
         # Exibe erros se houver
         if resultados['problemas_rm']:
             self._mostrar_erros_rm(resultados['problemas_rm'])
             return
-            
+
         if resultados['rms_duplicados']:
             self._mostrar_rms_duplicados(resultados['rms_duplicados'])
             return
-            
+
         # Mostra aviso de nomes similares
         if resultados['duplicatas']:
             if not self._mostrar_avisos_similaridade(resultados['duplicatas']):
@@ -203,33 +203,33 @@ class AddAlunoWindow(QDialog, CenterWindowMixin):
         rms_duplicados = []
         duplicatas = []
         alunos_validos = []
-        
+
         # Primeira passada: valida RMs
         alunos_para_verificar_nome = []
         rms_vistos = set()
-        
+
         for linha, nome, rm in alunos:
             # Validação do RM
             if not rm.isdigit():
                 problemas_rm.append(f"Linha {linha}: RM '{rm}' não é numérico")
                 continue
-                
+
             rm_int = int(rm)
-            
+
             # Verifica RM duplicado na própria entrada
             if rm_int in rms_vistos:
                 rms_duplicados.append((rm_int, f"Duplicado na linha {linha}"))
                 continue
             rms_vistos.add(rm_int)
-            
+
             # Verifica RM duplicado no banco de dados
             if self.data_manager.rm_existe(rm_int):
                 aluno_existente = self.data_manager.get_aluno_por_rm(rm_int)
-                rms_duplicados.append((rm_int, aluno_existente['Nome do Aluno']))
+                rms_duplicados.append((rm_int, aluno_existente['Nome do(a) Aluno(a)']))
                 continue
-                
+
             alunos_para_verificar_nome.append((linha, nome, rm_int))
-        
+
         # Segunda passada: verifica similaridade de nomes (apenas para alunos com RM válido)
         for linha, nome, rm in alunos_para_verificar_nome:
             similar_check = self.data_manager.nome_similar_existe(nome)
@@ -243,7 +243,7 @@ class AddAlunoWindow(QDialog, CenterWindowMixin):
                     'similarity': similar_check['similarity']
                 })
             alunos_validos.append((nome, rm))
-        
+
         return {
             'problemas_rm': problemas_rm,
             'rms_duplicados': rms_duplicados,
@@ -265,14 +265,14 @@ class AddAlunoWindow(QDialog, CenterWindowMixin):
         mensagem = """
         <p>Por favor, <span style="color: red;">corrija os RMs duplicados</span> antes de continuar:</p>
         <ul>"""
-        
+
         for rm, nome in duplicados:
             mensagem += f"""
             <li>RM <b>{rm}</b> já existe para: <b>{nome}</b></li>
             """
-        
+
         mensagem += "</ul>"
-        
+
         msg = QMessageBox(self)
         msg.setIcon(QMessageBox.Warning)
         msg.setWindowTitle("RMs Duplicados")
@@ -285,20 +285,20 @@ class AddAlunoWindow(QDialog, CenterWindowMixin):
         mensagem = """
         <p><b>Possíveis duplicatas encontradas:</b></p>
         <ul>"""
-        
+
         for dup in duplicatas:
             mensagem += f"""
             <li>
                 <b>Linha {dup['linha']}:</b><br>
                 • <b>Novo cadastro:</b> {dup['nome_novo']} (RM: <b>{dup['rm_novo']}</b>)<br>
-                • <b>Aluno existente:</b> {dup['nome_existente']} (RM: <b>{dup['rm_existente']}</b>)<br>
+                • <b>Aluno(a) existente:</b> {dup['nome_existente']} (RM: <b>{dup['rm_existente']}</b>)<br>
                 • <b>Similaridade:</b> {dup['similarity']*100:.1f}%
             </li>
             <br>
             """
-        
+
         mensagem += "</ul>"
-        
+
         msg = QMessageBox(self)
         msg.setIcon(QMessageBox.Warning)
         msg.setWindowTitle("Aviso de Possíveis Duplicatas")
@@ -308,7 +308,7 @@ class AddAlunoWindow(QDialog, CenterWindowMixin):
         msg.setStandardButtons(QMessageBox.Yes | QMessageBox.No)
         msg.button(QMessageBox.Yes).setText("Continuar mesmo assim")
         msg.button(QMessageBox.No).setText("Corrigir")
-        
+
         return msg.exec_() == QMessageBox.Yes
 
     def _confirmar_e_adicionar(self, alunos_validos):
@@ -316,7 +316,7 @@ class AddAlunoWindow(QDialog, CenterWindowMixin):
         confirm = QMessageBox.question(
             self,
             "Confirmar",
-            f"Deseja adicionar {len(alunos_validos)} aluno(s)?",
+            f"Deseja adicionar {len(alunos_validos)} aluno(a)(s)?",
             QMessageBox.Yes | QMessageBox.No
         )
 
@@ -325,17 +325,17 @@ class AddAlunoWindow(QDialog, CenterWindowMixin):
                 # Adiciona em lote
                 novos_dados = pd.DataFrame(
                     [(nome, rm) for nome, rm in alunos_validos],
-                    columns=['Nome do Aluno', 'RM']
+                    columns=['Nome do(a) Aluno(a)', 'RM']
                 )
                 self.data_manager.excel_manager.df = pd.concat(
                     [self.data_manager.excel_manager.df, novos_dados],
                     ignore_index=True
                 ).sort_values('RM')
-                
+
                 QMessageBox.information(
                     self,
                     "Sucesso",
-                    f"{len(alunos_validos)} aluno(s) adicionado(s) com sucesso!"
+                    f"{len(alunos_validos)} aluno(a)(s) adicionado(s) com sucesso!"
                 )
                 self.aluno_adicionado_signal.emit()
                 self.close()
@@ -344,5 +344,5 @@ class AddAlunoWindow(QDialog, CenterWindowMixin):
                 QMessageBox.critical(
                     self,
                     "Erro",
-                    f"Falha ao adicionar alunos:\n{str(e)}"
+                    f"Falha ao adicionar alunos(as):\n{str(e)}"
                 )

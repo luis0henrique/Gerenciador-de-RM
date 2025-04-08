@@ -28,7 +28,7 @@ class FileOperations:
                     self.main_window._update_table()
                     self._add_recent_file(file_path)
                     self._save_last_path(file_path)
-                    self.main_window.setWindowTitle(f"Gerenciador de Alunos - {os.path.basename(file_path)}")
+                    self.main_window.setWindowTitle(f"Gerenciador de RMs - {os.path.basename(file_path)}")
 
                     self.main_window.btn_add.setEnabled(True)
                     self.main_window.btn_save.setEnabled(True)
