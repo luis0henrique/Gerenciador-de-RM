@@ -163,7 +163,6 @@ QTableWidget::corner {
 QTableWidget::item:selected {
     background-color: #008dce;
     color: white;
-    /* padding: 15px; */
 }
 
 

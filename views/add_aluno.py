@@ -268,7 +268,7 @@ class AddAlunoWindow(QDialog, CenterWindowMixin):
 
         for rm, nome in duplicados:
             mensagem += f"""
-            <li>RM <b>{rm}</b> já existe para: <b>{nome}</b></li>
+            <li>• RM <b>{rm}</b> já existe para: <b>{nome}</b></li>
             """
 
         mensagem += "</ul>"
