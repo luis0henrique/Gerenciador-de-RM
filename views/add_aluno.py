@@ -66,8 +66,8 @@ class AddAlunoWindow(QDialog, CenterWindowMixin):
         content_layout = QVBoxLayout(self.content_widget)
         content_layout.setContentsMargins(20, 5, 20, 20)
 
-        # Tabela para entrada em lote (50 linhas)
-        self.table = QTableWidget(50, 2)
+        # Tabela para entrada em lote (100 linhas)
+        self.table = QTableWidget(100, 2)
         self.table.setHorizontalHeaderLabels(["Nome do(a) Aluno(a)", "RM"])
         self.table.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
 
@@ -98,8 +98,8 @@ class AddAlunoWindow(QDialog, CenterWindowMixin):
 
         # Aplica sombras
         add_shadow(self.table)
-        add_shadow(self.btn_add_alunos, blur=8, x_offset=2, y_offset=2)
-        add_shadow(self.btn_cancel, blur=8, x_offset=2, y_offset=2)
+        add_shadow(self.btn_add_alunos, blur=5, x_offset=1, y_offset=1)
+        add_shadow(self.btn_cancel, blur=5, x_offset=1, y_offset=1)
 
     def resizeEvent(self, event):
         """Ajusta dinamicamente o layout ao redimensionar"""
@@ -335,7 +335,7 @@ class AddAlunoWindow(QDialog, CenterWindowMixin):
                 QMessageBox.information(
                     self,
                     "Sucesso",
-                    f"{len(alunos_validos)} aluno(a)(s) adicionado(s) com sucesso!"
+                    f"{len(alunos_validos)} aluno(a)(s) adicionado(a)(s) com sucesso!"
                 )
                 self.aluno_adicionado_signal.emit()
                 self.close()

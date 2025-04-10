@@ -36,10 +36,10 @@ QPushButton:pressed {
 #search_btn {
     background-color: #46b3e6;
     color: white;
-    min-width: 10px;    
-    max-width: 10px;    
+    min-width: 10px;
+    max-width: 10px;
     /* min-height: 20px;    */
-    max-height: 20px;   
+    max-height: 20px;
     border: 1px solid #2ca1d8;
     margin-left: 0;
     border-radius: 0;
@@ -57,7 +57,7 @@ QPushButton:pressed {
 .btn_add_alunos {
     background-color: #18a547;
     color: white;
-    border: 1px solid rgb(21, 173, 80);
+    border: 1px solid #10a549;
     /* border: 1px solid #d6d6d6; */
     border-radius: 0;
 }
@@ -73,7 +73,7 @@ QPushButton:pressed {
 .btn_cancel {
     background-color: #f44336;
     color: white;
-    border: 1px solid rgb(187, 37, 26);
+    border: 1px solid #af362e;
     border-radius: 0;
 }
 
