@@ -178,7 +178,7 @@ class MainWindow(QMainWindow, CenterWindowMixin):
             self.table.sortByColumn(logical_index, current_order)
 
     def _load_last_file(self):
-        """Carrega último arquivo automaticamente"""
+        """Carrega último arquivo automaticamente em segundo plano"""
         last_path_file = os.path.join("resources", "last_path.dat")
 
         if os.path.exists(last_path_file):
@@ -188,18 +188,32 @@ class MainWindow(QMainWindow, CenterWindowMixin):
 
                 if os.path.exists(file_path):
                     self.status_bar.showMessage(f"Carregando último arquivo...")
-                    QApplication.processEvents()
 
-                    if self.excel_manager.load_excel(file_path):
-                        self.current_file = file_path
-                        self._update_table()
-                        self.file_ops._add_recent_file(file_path)
-                        self.setWindowTitle(f"Gerenciador de RMs - {os.path.basename(file_path)}")
-                        return True
+                    # Usar QTimer para carregar em segundo plano
+                    from PyQt5.QtCore import QTimer
+                    QTimer.singleShot(100, lambda: self._async_load_file(file_path))
+                    return True
             except Exception as e:
                 print(f"Erro ao carregar último arquivo: {e}")
 
         return False
+
+    def _async_load_file(self, file_path):
+        """Carrega o arquivo de forma assíncrona"""
+        try:
+            QApplication.processEvents()  # Atualiza a UI
+
+            if self.excel_manager.load_excel(file_path):
+                self.current_file = file_path
+                self._update_table()
+                self.file_ops._add_recent_file(file_path)
+                self.setWindowTitle(f"Gerenciador de RMs - {os.path.basename(file_path)}")
+                self.status_bar.showMessage(f"Arquivo carregado: {os.path.basename(file_path)} - {len(self.excel_manager.df)} registros", 5000)
+            else:
+                self.status_bar.showMessage("Falha ao carregar arquivo", 5000)
+        except Exception as e:
+            self.status_bar.showMessage(f"Erro ao carregar arquivo: {str(e)}", 5000)
+            print(f"Erro ao carregar arquivo: {e}")
 
     def _update_buttons_state(self):
         """Atualiza estado dos botões"""
