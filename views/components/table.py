@@ -101,6 +101,13 @@ class TableManager:
                 model.appendRow([nome_item, rm_item])
 
             self.current_chunk += 1
+
+            # Atualiza status bar
+            if hasattr(self, 'main_window') and hasattr(self.main_window, 'statusBar'):
+                loaded = min(self.current_chunk * self.CHUNK_SIZE, len(self.full_data))
+                self.main_window.statusBar().showMessage(
+                    f"Carregados {loaded} de {len(self.full_data)} registros", 3000
+                )
         except Exception as e:
             print(f"Erro ao carregar chunk: {e}")
         finally:
