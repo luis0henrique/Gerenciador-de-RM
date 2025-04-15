@@ -165,11 +165,32 @@ QTableWidget::item:selected {
     color: white;
 }
 
-
 /* ===== STATUS BAR - RODAPÉ ===== */
 QStatusBar {
     background: #e0e0e0;
     border-top: 1px solid #bdbdbd;
+	padding: 0px;
+}
+
+QStatusBar::item {
+    padding: 0px;
+    margin: 0px;
+}
+
+/* ===== PROGRESS BAR ===== */
+QProgressBar {
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    background: #f0f0f0;
+}
+
+QProgressBar::chunk {
+    background: #46b3e6;
+    border-radius: 3px;
+}
+
+QProgressBar:indeterminate::chunk {
+    background: #e0e0e0;
 }
 
 /* ===== MENU BAR ===== */
