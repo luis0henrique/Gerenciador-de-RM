@@ -1,9 +1,9 @@
 import os
 from PyQt5.QtWidgets import (
     QApplication, QMainWindow, QWidget, QVBoxLayout, QHBoxLayout,
-    QPushButton, QTableView, QMessageBox, QLineEdit
+    QPushButton, QTableView, QMessageBox, QLineEdit, QProgressBar
 )
-from PyQt5.QtCore import Qt, QSize
+from PyQt5.QtCore import Qt, QSize, QThread, pyqtSignal, QTimer
 from PyQt5.QtGui import QIcon
 from models.excel_manager import ExcelManager
 from utils.helpers import remove_acentos
@@ -32,6 +32,7 @@ class MainWindow(QMainWindow, CenterWindowMixin):
         # Carrega configurações iniciais
         self._init_settings()
         self.table_manager.main_window = self
+        self.loader_thread = None
 
     def _init_ui(self):
         self.setWindowTitle("Gerenciador de RMs")
@@ -39,27 +40,31 @@ class MainWindow(QMainWindow, CenterWindowMixin):
         self.setMinimumSize(QSize(800, 750))
         self.MAX_CONTENT_WIDTH = 750
 
-        central_widget = QWidget()
-        self.setCentralWidget(central_widget)
-        apply_theme(QApplication.instance(), load_theme_preference())
+        # Widget principal que contém tudo
+        main_widget = QWidget()
+        self.setCentralWidget(main_widget)
 
-        window_layout = QHBoxLayout(central_widget)
-        window_layout.setContentsMargins(0, 0, 0, 0)
-        window_layout.setSpacing(0)
+        # Layout principal
+        main_layout = QVBoxLayout(main_widget)
+        main_layout.setContentsMargins(0, 0, 0, 0)
+        main_layout.setSpacing(0)
+
+        # Área de conteúdo principal
+        window_layout = QWidget()
+        window_layout_layout = QHBoxLayout(window_layout)
+        window_layout_layout.setContentsMargins(0, 0, 0, 0)
+        window_layout_layout.addStretch(1)
 
         self.content_widget = QWidget()
-        window_layout.addStretch(1)
-        window_layout.addWidget(self.content_widget)
-        window_layout.addStretch(1)
-
+        self.content_widget.setMaximumWidth(self.MAX_CONTENT_WIDTH)
         content_layout = QVBoxLayout(self.content_widget)
-        content_layout.setContentsMargins(20, 5, 20, 20)
+        content_layout.setContentsMargins(20, 5, 20, 5)
 
+        # Menu
         self.menu_manager.create_menu_bar()
 
         # Toolbar
         toolbar = QHBoxLayout()
-        self.btn_load = QPushButton("Carregar Arquivo")
         self.btn_add = QPushButton(" Adicionar Aluno(a)")
         self.btn_add.setIcon(QIcon("assets/images/add_icon_white.png"))
         self.btn_save = QPushButton("  Salvar")
@@ -96,19 +101,44 @@ class MainWindow(QMainWindow, CenterWindowMixin):
         self.table_manager.status_bar = self.statusBar
         content_layout.addWidget(self.table)
 
-        for btn in [self.btn_load, self.btn_add, self.btn_save, self.search_btn]:
+        for btn in [self.btn_add, self.btn_save, self.search_btn]:
             add_shadow(btn)
 
         add_shadow(self.search_field)
         add_shadow(self.table)
 
+        window_layout_layout.addWidget(self.content_widget)
+        window_layout_layout.addStretch(1)
+        main_layout.addWidget(window_layout, 1)
+
         # Status bar
         self.status_bar = self.statusBar()
+        self.status_bar.setFixedHeight(self.status_bar.sizeHint().height() + 10)
 
-        self.center_window()  # Centraliza a janela
+        # Progress bar
+        self.progress_widget = QWidget()
+        self.progress_widget.setFixedHeight(20)
+        progress_layout = QHBoxLayout(self.progress_widget)
+        progress_layout.setContentsMargins(0, 0, 0, 5)
+
+        self.progress_bar = QProgressBar()
+        self.progress_bar.setFixedWidth(700)
+        self.progress_bar.setFixedHeight(16)
+        self.progress_bar.setTextVisible(False)
+        self.progress_bar.setRange(0, 0)
+        self.progress_bar.setVisible(False)
+
+        progress_layout.addStretch()
+        progress_layout.addWidget(self.progress_bar)
+        progress_layout.addStretch()
+
+        main_layout.addWidget(self.progress_widget)
+
+        # Aplica o tema depois de tudo criado
+        apply_theme(QApplication.instance(), load_theme_preference())
+        self.center_window()
 
     def _connect_signals(self):
-        self.btn_load.clicked.connect(self.file_ops.load_file)
         self.btn_add.clicked.connect(self._open_add_aluno_window)
         self.btn_save.clicked.connect(self.file_ops.save_file)
 
@@ -126,7 +156,6 @@ class MainWindow(QMainWindow, CenterWindowMixin):
         self.file_ops.load_recent_files()
 
         # Carrega o tema preferido
-        from utils.styles import apply_theme
         self.current_theme = apply_theme(QApplication.instance(), load_theme_preference() or 'light')
         if not self._load_last_file():
             self.status_bar.showMessage("Pronto para carregar arquivo")
@@ -199,21 +228,40 @@ class MainWindow(QMainWindow, CenterWindowMixin):
         return False
 
     def _async_load_file(self, file_path):
-        """Carrega o arquivo de forma assíncrona"""
-        try:
-            QApplication.processEvents()  # Atualiza a UI
+        """Inicia o carregamento do arquivo"""
+        # Configura UI
+        self.progress_bar.setRange(0, 0)  # Modo indeterminado
+        self.progress_bar.setVisible(True)
+        self.status_bar.showMessage("Carregando arquivo...")
+        self.setEnabled(False)
+        QApplication.processEvents()
 
-            if self.excel_manager.load_excel(file_path):
+        # Cria e inicia thread
+        self.loader_thread = FileLoaderThread(self.excel_manager, file_path)
+        self.loader_thread.finished.connect(self._on_file_loaded)
+        self.loader_thread.start()
+
+    def _on_file_loaded(self, success, file_path):
+        """Finaliza o carregamento"""
+        try:
+            if success:
+                # Atualiza interface
                 self.current_file = file_path
                 self._update_table()
                 self.file_ops._add_recent_file(file_path)
                 self.setWindowTitle(f"Gerenciador de RMs - {os.path.basename(file_path)}")
-                self.status_bar.showMessage(f"Arquivo carregado: {os.path.basename(file_path)} - {len(self.excel_manager.df)} registros", 5000)
+
+                # Feedback visual de conclusão
+                self.progress_bar.setRange(0, 100)
+                self.progress_bar.setValue(100)
+                self.status_bar.showMessage("Carregamento completo", 3000)
             else:
-                self.status_bar.showMessage("Falha ao carregar arquivo", 5000)
-        except Exception as e:
-            self.status_bar.showMessage(f"Erro ao carregar arquivo: {str(e)}", 5000)
-            print(f"Erro ao carregar arquivo: {e}")
+                self.status_bar.showMessage("Falha no carregamento", 3000)
+        finally:
+            # Restaura UI
+            QTimer.singleShot(500, lambda: self.progress_bar.setVisible(False))
+            self.setEnabled(True)
+            self.loader_thread = None
 
     def _update_buttons_state(self):
         """Atualiza estado dos botões"""
@@ -252,6 +300,23 @@ class MainWindow(QMainWindow, CenterWindowMixin):
         content_width = min(self.width(), self.MAX_CONTENT_WIDTH)
         self.content_widget.setFixedWidth(content_width)
         self.table_manager.resize_columns()
+
+class FileLoaderThread(QThread):
+    finished = pyqtSignal(bool, str)  # success, file_path
+    progress = pyqtSignal(int)  # progress percentage
+
+    def __init__(self, excel_manager, file_path):
+        super().__init__()
+        self.excel_manager = excel_manager
+        self.file_path = file_path
+
+    def run(self):
+        try:
+            success = self.excel_manager.load_excel(self.file_path)
+            self.finished.emit(success, self.file_path)
+        except Exception as e:
+            print(f"Erro no worker thread: {e}")
+            self.finished.emit(False, self.file_path)
 
 if __name__ == "__main__":
     app = QApplication([])
