@@ -1,6 +1,6 @@
 /* === LIGHT THEME === */
 /* $$LIGHT_START$$ */
-QMainWindow {
+QMainWindow, QDialog {
     background-image: url(assets/images/background_light.png);
     background-repeat: no-repeat;
     background-attachment: fixed;
@@ -33,6 +33,13 @@ QPushButton:pressed {
     background-color: #298ba9;
 }
 
+QPushButton:disabled {
+    background-color: #bdbdbd;
+    color: #7d7d7d;
+    border: 1px solid #bdbdbd;
+    border-radius: 0;
+}
+
 #search_btn {
     background-color: #46b3e6;
     color: white;
@@ -51,6 +58,13 @@ QPushButton:pressed {
 
 #search_btn:pressed {
     background-color: #298ba9;
+}
+
+#search_btn:disabled {
+    background-color: #bdbdbd;
+    color: #7d7d7d;
+    border: 1px solid #bdbdbd;
+    border-radius: 0;
 }
 
 /* Add Aluno Window Buttons */
@@ -85,7 +99,6 @@ QPushButton:pressed {
     background-color: #c62828;
 }
 
-
 /* ===== INPUT FIELDS ===== */
 QLineEdit, QTextEdit, QPlainTextEdit {
     border: 1px solid #bdbdbd;
@@ -105,6 +118,13 @@ QLineEdit:focus, QTextEdit:focus, QPlainTextEdit:focus {
     border: 1px solid #bdbdbd;
     padding: 6px;
     margin-right: 0;
+    border-radius: 0;
+}
+
+#search_field:disabled {
+    background-color: #bdbdbd;
+    color: #7d7d7d;
+    border: 1px solid #bdbdbd;
     border-radius: 0;
 }
 
@@ -129,8 +149,22 @@ QTableView::item:selected {
     color: white;
 }
 
+QTableView:disabled {
+    background-color: #bdbdbd;
+    color: #7d7d7d;
+    border: 1px solid #bdbdbd;
+    border-radius: 0;
+}
+
 QHeaderView {
     background-color: #f5f5f5;
+}
+
+QHeaderView:disabled {
+    background-color: #bdbdbd;
+    color: #7d7d7d;
+    border: 1px solid #bdbdbd;
+    border-radius: 0;
 }
 
 QHeaderView::section {
@@ -144,6 +178,13 @@ QHeaderView::section {
 QHeaderView::section:checked {
     background-color: #008dce;
     color: white;
+}
+
+QHeaderView::section:disabled {
+    background-color: #bdbdbd;
+    color: #7d7d7d;
+    border: 1px solid #bdbdbd;
+    border-radius: 0;
 }
 
 /* Add Aluno Table */
@@ -172,23 +213,16 @@ QStatusBar {
 	padding: 0px;
 }
 
-QStatusBar::item {
-    padding: 0px;
-    margin: 0px;
-}
-
 /* ===== PROGRESS BAR ===== */
 QProgressBar {
     border: 1px solid #ccc;
     border-radius: 4px;
     background: #f0f0f0;
 }
-
 QProgressBar::chunk {
     background: #46b3e6;
     border-radius: 3px;
 }
-
 QProgressBar:indeterminate::chunk {
     background: #e0e0e0;
 }
@@ -245,10 +279,9 @@ QLabel {
 
 /* $$LIGHT_END$$ */
 
-
 /* === DARK THEME === */
 /* $$DARK_START$$ */
-QMainWindow {
+QMainWindow, QDialog {
     /* background-color: #2b2b2b; */
     background-image: url(assets/images/background_dark.png);
     background-repeat: no-repeat;
@@ -284,6 +317,13 @@ QPushButton:pressed {
     background-color: #1f5366;
 }
 
+QPushButton:disabled {
+    background-color: #1c1c1c;
+    color: #7d7d7d;
+    border: 1px solid #bdbdbd;
+    border-radius: 0;
+}
+
 #search_btn {
     background-color: #3c6e91;
     color: white;
@@ -301,6 +341,13 @@ QPushButton:pressed {
 
 #search_btn:pressed {
     background-color: #1f5366;
+}
+
+#search_btn:disabled {
+    background-color: #1c1c1c;
+    color: #7d7d7d;
+    border: 1px solid #bdbdbd;
+    border-radius: 0;
 }
 
 /* Add Aluno Window Buttons */
@@ -334,13 +381,12 @@ QPushButton:pressed {
     background-color: #8b1f1a;
 }
 
-
 /* ===== INPUT FIELDS ===== */
 QLineEdit, QTextEdit, QPlainTextEdit {
     border: 1px solid #5e5e5e;
     border-radius: 3px;
     padding: 5px;
-    background: #3c3c3c;
+    background: #2c2c2c;
     color: #e0e0e0;
     selection-background-color: #3c6e91;
     selection-color: white;
@@ -358,9 +404,16 @@ QLineEdit:focus, QTextEdit:focus, QPlainTextEdit:focus {
     border-radius: 0;
 }
 
+#search_field:disabled {
+    background-color: #1c1c1c;
+    color: #7d7d7d;
+    border: 1px solid #bdbdbd;
+    border-radius: 0;
+}
+
 /* ===== TABLES ===== */
 QTableView {
-    background-color: #3c3c3c;
+    background-color: #2c2c2c;
     selection-background-color: #2e536c; /* Azul escuro */
     gridline-color: #555555;
     border: 1px solid #5e5e5e;
@@ -382,8 +435,22 @@ QTableView::item:selected {
     color: white;
 }
 
+QTableView:disabled {
+    background-color: #1c1c1c;
+    color: #7d7d7d;
+    border: 1px solid #bdbdbd;
+    border-radius: 0;
+}
+
 QHeaderView {
     background-color: #2b2b2b;
+}
+
+QHeaderView:disabled {
+    background-color: #1c1c1c;
+    color: #7d7d7d;
+    border: 1px solid #bdbdbd;
+    border-radius: 0;
 }
 
 QHeaderView::section {
@@ -399,9 +466,16 @@ QHeaderView::section:checked {
     color: white;
 }
 
+QHeaderView::section:disabled {
+    background-color: #1c1c1c;
+    color: #7d7d7d;
+    border: 1px solid #bdbdbd;
+    border-radius: 0;
+}
+
 /* Add Aluno Table */
 QTableWidget {
-    background-color: #3c3c3c;
+    background-color: #2c2c2c;
     gridline-color: #555555;
     border: 1px solid #555555;
     border-radius: 0;
@@ -422,13 +496,26 @@ QTableWidget::item:selected {
     color: white;
 }
 
-
 /* ===== STATUS BAR - RODAPÉ ===== */
 QStatusBar {
-    background: #424242;
+    background: #2c2c2c;
     border-top: 1px solid #555555;
+	color: #e0e0e0;
 }
 
+/* ===== PROGRESS BAR ===== */
+QProgressBar {
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    background: #2c2c2c;
+}
+QProgressBar::chunk {
+    background: #3c6e91;
+    border-radius: 3px;
+}
+QProgressBar:indeterminate::chunk {
+    background: #e0e0e0;
+}
 
 /* ===== MENU BAR ===== */
 QMenuBar {
@@ -478,7 +565,6 @@ QMessageBox {
     max-width: 20px;
 }
 
-
 /* ===== DIALOGS ===== */
 QDialog {
     background-color: #2e2e2e; /* alterado para tema escuro */
@@ -489,8 +575,6 @@ QLabel {
 }
 
 /* $$DARK_END$$ */
-
-
 
 /* ============================================================== */
 
