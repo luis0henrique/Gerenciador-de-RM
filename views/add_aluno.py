@@ -20,7 +20,7 @@ class AddAlunoWindow(QDialog, CenterWindowMixin):
         self.center_window()
 
     def _init_window_config(self):
-        """Initialize window configuration"""
+        """Inicia a configuração da janela"""
         self.setWindowFlags(self.windowFlags() |
                           Qt.WindowMinimizeButtonHint |
                           Qt.WindowMaximizeButtonHint |
@@ -38,7 +38,7 @@ class AddAlunoWindow(QDialog, CenterWindowMixin):
         self.resize(self.MAX_CONTENT_WIDTH, 700)
 
     def _init_ui(self):
-        """Initialize the user interface"""
+        """Inicia a interface da janela"""
         # Main layout
         main_layout = QVBoxLayout(self)
         main_layout.setContentsMargins(0, 0, 0, 0)
