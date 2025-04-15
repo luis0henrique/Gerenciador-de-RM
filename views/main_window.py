@@ -70,6 +70,9 @@ class MainWindow(QMainWindow, CenterWindowMixin):
         self.btn_save = QPushButton("  Salvar")
         self.btn_save.setIcon(QIcon("assets/images/save_icon_white.png"))
 
+        self.btn_add.setCursor(Qt.PointingHandCursor)
+        self.btn_save.setCursor(Qt.PointingHandCursor)
+
         self.btn_add.setEnabled(False)
         self.btn_save.setEnabled(False)
 
@@ -91,6 +94,8 @@ class MainWindow(QMainWindow, CenterWindowMixin):
         self.search_btn.setIcon(QIcon("assets/images/lupa_icon_white.png"))
         self.search_btn.setObjectName("search_btn")
 
+        self.search_btn.setCursor(Qt.PointingHandCursor)
+
         search_layout.addWidget(self.search_field)
         search_layout.addWidget(self.search_btn)
         content_layout.addLayout(search_layout)
@@ -101,11 +106,16 @@ class MainWindow(QMainWindow, CenterWindowMixin):
         self.table_manager.status_bar = self.statusBar
         content_layout.addWidget(self.table)
 
-        for btn in [self.btn_add, self.btn_save, self.search_btn]:
-            add_shadow(btn)
+        elements_with_shadow = [
+            self.btn_add,
+            self.btn_save,
+            self.search_btn,
+            self.search_field,
+            self.table
+        ]
 
-        add_shadow(self.search_field)
-        add_shadow(self.table)
+        for element in elements_with_shadow:
+            add_shadow(element)
 
         window_layout_layout.addWidget(self.content_widget)
         window_layout_layout.addStretch(1)
