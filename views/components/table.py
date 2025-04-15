@@ -102,11 +102,12 @@ class TableManager:
 
             self.current_chunk += 1
 
-            # Atualiza status bar
+            # Atualiza status bar com porcentagem
             if hasattr(self, 'main_window') and hasattr(self.main_window, 'statusBar'):
                 loaded = min(self.current_chunk * self.CHUNK_SIZE, len(self.full_data))
+                percent = int((loaded / len(self.full_data)) * 100)
                 self.main_window.statusBar().showMessage(
-                    f"Carregados {loaded} de {len(self.full_data)} registros", 3000
+                    f"Carregados {loaded} de {len(self.full_data)} registros ({percent}%)", 3000
                 )
         except Exception as e:
             print(f"Erro ao carregar chunk: {e}")
