@@ -33,5 +33,10 @@ def main():
         traceback.print_exc()
         sys.exit(1)
 
+# Exibe versão ao iniciar o programa
+with open("VERSION.txt", "r") as file:
+    version = file.read().strip()
+print(f"Gerenciador de RMs - Versão {version}")
+
 if __name__ == "__main__":
     main()
