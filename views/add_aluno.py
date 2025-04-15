@@ -67,7 +67,7 @@ class AddAlunoWindow(QDialog, CenterWindowMixin):
         self._setup_buttons(content_layout)
 
     def _setup_table(self, layout):
-        """Configura a tabela de entrada do aluno"""
+        """Configurar a tabela de entrada do aluno"""
         self.table = QTableWidget(100, 2)
         self.table.setHorizontalHeaderLabels(["Nome do(a) Aluno(a)", "RM"])
         self.table.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
