@@ -1,4 +1,3 @@
-# views/components/file_operations.py
 import os
 import shutil
 from datetime import datetime

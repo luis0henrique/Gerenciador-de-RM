@@ -8,13 +8,11 @@ from PyQt5.QtCore import Qt, QSize, QThread, pyqtSignal, QTimer
 from PyQt5.QtGui import QIcon
 from models.excel_manager import ExcelManager
 from utils.helpers import remove_acentos
-from utils.styles import (
-    apply_theme, load_theme_preference,
-)
+from utils.styles import apply_theme, load_theme_preference
+from utils.ui_helpers import CenterWindowMixin, add_shadow
 from views.components import TableManager
 from views.components.menu import MenuManager
 from views.components.file_operations import FileOperations
-from utils.ui_helpers import CenterWindowMixin, add_shadow
 
 class MainWindow(QMainWindow, CenterWindowMixin):
     def __init__(self):
