@@ -1,8 +1,8 @@
 import pandas as pd
 from difflib import SequenceMatcher
-from utils.helpers import remove_acentos
 from collections import defaultdict
 from typing import Dict, Any, Optional
+from utils.helpers import remove_acentos, formatar_nome
 
 class DataManager:
     def __init__(self, excel_manager):
@@ -46,8 +46,11 @@ class DataManager:
         if not hasattr(self.excel_manager, 'df'):
             return False
 
+        # Formata o nome antes de adicionar
+        nome_formatado = formatar_nome(nome)
+
         # Cria novo registro
-        new_row = pd.DataFrame([[nome, rm]], columns=self.excel_manager.df.columns)
+        new_row = pd.DataFrame([[nome_formatado, rm]], columns=self.excel_manager.df.columns)
         self.excel_manager.df = pd.concat([self.excel_manager.df, new_row], ignore_index=True)
 
         # Atualiza índices

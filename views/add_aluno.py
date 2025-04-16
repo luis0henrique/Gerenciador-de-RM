@@ -6,6 +6,7 @@ from PyQt5.QtWidgets import (
 )
 from PyQt5.QtCore import Qt, pyqtSignal
 from utils.ui_helpers import CenterWindowMixin, add_shadow
+from utils.helpers import formatar_nome
 from utils.styles import get_current_stylesheet
 
 class AddAlunoWindow(QDialog, CenterWindowMixin):
@@ -177,9 +178,8 @@ class AddAlunoWindow(QDialog, CenterWindowMixin):
         for row in range(self.table.rowCount()):
             nome_item = self.table.item(row, 0)
             rm_item = self.table.item(row, 1)
-
             if nome_item and rm_item:
-                nome = nome_item.text().strip()
+                nome = formatar_nome(nome_item.text().strip())  # Formata aqui
                 rm = rm_item.text().strip()
                 if nome and rm:
                     alunos.append((row+1, nome, rm))
