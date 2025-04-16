@@ -1,13 +1,14 @@
+# views/components/file_operations.py
 import os
 import shutil
 from datetime import datetime
 from PyQt5.QtWidgets import QFileDialog, QMessageBox
+from models.config_manager import ConfigManager
 
 class FileOperations:
     def __init__(self, main_window):
         self.main_window = main_window
-        self.recent_files = []
-        self.max_recent_files = 5
+        self.config = ConfigManager()
 
     def load_file(self, file_path=None):
         """Carrega um arquivo Excel"""
@@ -15,21 +16,20 @@ class FileOperations:
             file_path, _ = QFileDialog.getOpenFileName(
                 self.main_window,
                 "Abrir Arquivo Excel",
-                "",
+                self.config.get_last_path() or "",
                 "Excel Files (*.xlsx *.xls)"
             )
 
         if file_path:
             try:
                 self.main_window.status_bar.showMessage(f"Carregando {os.path.basename(file_path)}...")
-
                 if self.main_window.excel_manager.load_excel(file_path):
                     self.main_window.current_file = file_path
                     self.main_window._update_table()
-                    self._add_recent_file(file_path)
-                    self._save_last_path(file_path)
+                    # Usa apenas o ConfigManager para salvar os caminhos
+                    self.config.add_recent_file(file_path)
+                    self.config.set_last_path(file_path)
                     self.main_window.setWindowTitle(f"Gerenciador de RMs - {os.path.basename(file_path)}")
-
                     self.main_window.btn_add.setEnabled(True)
                     self.main_window.btn_save.setEnabled(True)
                     return True
@@ -39,50 +39,18 @@ class FileOperations:
                 return False
         return False
 
-    def _add_recent_file(self, file_path):
-        """Adiciona arquivo à lista de recentes e salva no arquivo"""
-        if not file_path or not os.path.exists(file_path):
-            return
-
-        if file_path in self.recent_files:
-            self.recent_files.remove(file_path)
-
-        self.recent_files.insert(0, file_path)
-        self.recent_files = self.recent_files[:self.max_recent_files]
-
-        # Remove paths inválidos
-        self.recent_files = [fp for fp in self.recent_files if os.path.exists(fp)]
-
-        # Salva no arquivo
-        os.makedirs("resources", exist_ok=True)
-        with open(os.path.join("resources", "recent_files.dat"), 'w') as f:
-            f.write("\n".join(self.recent_files))
-
-    def _save_last_path(self, file_path):
-        """Salva o último caminho acessado"""
-        try:
-            with open(os.path.join("resources", "last_path.dat"), "w") as f:
-                f.write(file_path)
-        except Exception as e:
-            print(f"Erro ao salvar último caminho: {e}")
-
-    def load_recent_files(self):
-        """Carrega a lista de arquivos recentes"""
-        recent_file_path = os.path.join("resources", "recent_files.dat")
-        if os.path.exists(recent_file_path):
-            with open(recent_file_path, 'r') as f:
-                self.recent_files = [line.strip() for line in f if line.strip()]
-
     def load_recent_file(self, file_path):
         """Carrega um arquivo da lista de recentes"""
         try:
             if os.path.exists(file_path):
                 return self.load_file(file_path)
             else:
-                # Remove arquivo inexistente da lista
-                if file_path in self.recent_files:
-                    self.recent_files.remove(file_path)
-                    self._add_recent_file("")  # Atualiza a lista
+                # Remove arquivo inexistente da lista via ConfigManager
+                recent_files = self.config.get_recent_files()
+                if file_path in recent_files:
+                    recent_files.remove(file_path)
+                    self.config.config["recent_files"] = recent_files
+                    self.config.save_config()
                 return False
         except Exception as e:
             QMessageBox.critical(self.main_window, "Erro", f"Falha ao carregar arquivo recente:\n{str(e)}")
@@ -90,15 +58,7 @@ class FileOperations:
 
     def get_recent_files(self):
         """Retorna a lista de arquivos recentes válidos"""
-        # Filtra apenas arquivos existentes
-        valid_files = [fp for fp in self.recent_files if os.path.exists(fp)]
-
-        # Se houve remoção de arquivos inválidos, atualiza a lista
-        if len(valid_files) != len(self.recent_files):
-            self.recent_files = valid_files
-            self._add_recent_file("")  # Força a atualização do arquivo
-
-        return self.recent_files
+        return self.config.get_recent_files()
 
     def save_file(self):
         """Salva o arquivo atual"""
@@ -129,7 +89,7 @@ class FileOperations:
         file_path, _ = QFileDialog.getSaveFileName(
             self.main_window,
             "Salvar Como",
-            "",
+            self.config.get_last_path() or "",
             "Excel Files (*.xlsx)"
         )
 
@@ -137,6 +97,8 @@ class FileOperations:
             if not file_path.endswith('.xlsx'):
                 file_path += '.xlsx'
             self.main_window.current_file = file_path
+            # Atualiza o último caminho ao salvar como
+            self.config.set_last_path(os.path.dirname(file_path))
             return self.save_file()
         return False
 
@@ -153,4 +115,4 @@ class FileOperations:
             shutil.copy2(file_path, backup_path)
         except Exception as e:
             print(f"Erro ao criar backup: {str(e)}")
-            raise  # Propaga o erro para ser tratado pelo chamador
+            raise
