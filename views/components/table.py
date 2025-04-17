@@ -1,4 +1,4 @@
-from PyQt5.QtWidgets import QApplication, QHeaderView, QMenu, QAction
+from PyQt5.QtWidgets import QApplication, QHeaderView, QMenu, QAction, QTableView
 from PyQt5.QtCore import Qt, QSortFilterProxyModel
 from PyQt5.QtGui import QStandardItemModel, QStandardItem, QFont, QColor
 
@@ -21,7 +21,9 @@ class TableManager:
         self.table.setCornerButtonEnabled(False)
         self.table.verticalHeader().setSectionResizeMode(QHeaderView.Fixed)
         self.table.verticalHeader().setDefaultSectionSize(32)
+        self.table.verticalHeader().setDefaultAlignment(Qt.AlignHCenter | Qt.AlignVCenter)
         self.table.setAlternatingRowColors(True)
+        self.table.setSelectionBehavior(QTableView.SelectRows) # !!Quebra a lógica de copiar RM!!
 
         model = QStandardItemModel()
         model.setHorizontalHeaderLabels(["Nome do(a) Aluno(a)", "RM"])
