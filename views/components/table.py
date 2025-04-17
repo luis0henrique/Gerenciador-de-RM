@@ -21,6 +21,7 @@ class TableManager:
         self.table.setCornerButtonEnabled(False)
         self.table.verticalHeader().setSectionResizeMode(QHeaderView.Fixed)
         self.table.verticalHeader().setDefaultSectionSize(32)
+        self.table.setAlternatingRowColors(True)
 
         model = QStandardItemModel()
         model.setHorizontalHeaderLabels(["Nome do(a) Aluno(a)", "RM"])
