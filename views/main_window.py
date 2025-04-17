@@ -9,10 +9,11 @@ from PyQt5.QtGui import QIcon
 from models.excel_manager import ExcelManager
 from utils.helpers import remove_acentos
 from utils.styles import apply_theme, load_theme_preference
-from utils.ui_helpers import CenterWindowMixin, add_shadow
+from utils.ui_helpers import CenterWindowMixin, add_shadow, MessageHandler
 from views.components import TableManager
 from views.components.menu import MenuManager
 from views.components.file_operations import FileOperations
+MESSAGE_TIMEOUT = 3000  # 3 segundos
 
 class MainWindow(QMainWindow, CenterWindowMixin):
     def __init__(self):
@@ -109,6 +110,10 @@ class MainWindow(QMainWindow, CenterWindowMixin):
             search_layout.addWidget(self.search_field)
             search_layout.addWidget(self.search_btn)
             content_layout.addLayout(search_layout)
+
+            # Inicializa o MessageHandler na posição correta (índice 3)
+            self.message_handler = MessageHandler(self.content_widget, content_layout)
+            self.message_handler.init_message_widget(position=3)
 
             # Table
             self.logger.debug("Configurando tabela...")
@@ -231,12 +236,14 @@ class MainWindow(QMainWindow, CenterWindowMixin):
 
         if normalized_term.isdigit():
             result = self.excel_manager.df[self.excel_manager.df['RM'].astype(str) == normalized_term]
-            self.status_bar.showMessage(f"Busca por RM encontrou {len(result)} resultados")
+            self.message_handler.show_message(
+                f"Busca por RM encontrou {len(result)} resultados"
+            )
         else:
             mask = self.excel_manager.df['Nome do(a) Aluno(a)'].apply(
                 lambda x: normalized_term in remove_acentos(str(x).lower()))
             result = self.excel_manager.df[mask]
-            self.status_bar.showMessage(f"Busca por nome encontrou {len(result)} resultados")
+            self.message_handler.show_message(f"Busca por nome encontrou {len(result)} resultados", "search")
 
         result_sorted = result.sort_values('Nome do(a) Aluno(a)')
         self._update_table_with_data(result_sorted)
@@ -245,7 +252,7 @@ class MainWindow(QMainWindow, CenterWindowMixin):
     def _restore_full_list(self):
         if hasattr(self.excel_manager, 'df'):
             self._update_table()
-            self.status_bar.showMessage(f"Exibindo {len(self.excel_manager.df)} registros")
+            self._update_record_count_message()
 
     def _on_header_clicked(self, logical_index):
         if logical_index == 1:
@@ -273,7 +280,7 @@ class MainWindow(QMainWindow, CenterWindowMixin):
             # Configura UI
             self.progress_bar.setRange(0, 0)
             self.progress_bar.setVisible(True)
-            self.status_bar.showMessage("Carregando arquivo...")
+            self.message_handler.show_message("Carregando arquivo...", "loading")
             self.setEnabled(False)
             QApplication.processEvents()
 
@@ -300,10 +307,13 @@ class MainWindow(QMainWindow, CenterWindowMixin):
                 # Feedback visual de conclusão
                 self.progress_bar.setRange(0, 100)
                 self.progress_bar.setValue(100)
-                self.status_bar.showMessage("Carregamento completo", 3000)
+                self.message_handler.show_message("Carregamento completo", MESSAGE_TIMEOUT)
                 self.logger.info(f"Arquivo {file_path} carregado com sucesso")
+
+                # Configura a mensagem padrão
+                self._update_record_count_message()
             else:
-                self.status_bar.showMessage("Falha no carregamento", 3000)
+                self.message_handler.show_message("Falha no carregamento", MESSAGE_TIMEOUT)
                 self.logger.warning(f"Falha ao carregar arquivo {file_path}")
 
         except Exception as e:
@@ -352,6 +362,12 @@ class MainWindow(QMainWindow, CenterWindowMixin):
         content_width = min(self.width(), self.MAX_CONTENT_WIDTH)
         self.content_widget.setFixedWidth(content_width)
         self.table_manager.resize_columns()
+
+    def _update_record_count_message(self):
+        """Atualiza e mostra a mensagem padrão de contagem de registros."""
+        if hasattr(self.excel_manager, 'df'):
+            count = len(self.excel_manager.df)
+            self.message_handler.show_message(f"Exibindo {count} registros", "default")
 
 class FileLoaderThread(QThread):
     finished = pyqtSignal(bool, str)  # success, file_path

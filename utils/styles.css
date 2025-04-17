@@ -178,7 +178,7 @@ QTableView::item:selected {
 }
 
 QTableView:disabled {
-    background-color: #bdbdbd;
+    background-color: #9c9c9c;
     color: #7d7d7d;
     border: 1px solid #bdbdbd;
     border-radius: 0;
@@ -245,6 +245,38 @@ QStatusBar {
     border-top: 1px solid #bdbdbd;
 	padding: 0px;
 	font-size: 8pt;
+}
+
+/* ===== WIDGET DE MENSAGEM ===== */
+#messageWidget {
+    margin: 5px 0;
+}
+
+#messageLabel {
+    font-size: 12px;
+    padding: 3px 8px;
+    border-radius: 4px;
+    margin: 0;
+    width: 100%;
+    text-align: center;
+}
+
+#messageLabel.default {
+    background-color: #e8f5e9; /* Verde */
+    color: #2e7d32;
+    border: 1px solid #c8e6c9;
+}
+
+#messageLabel.loading {
+    background-color: #fff3e0; /* Laranja */
+    color: #e65100;
+    border: 1px solid #ffe0b2;
+}
+
+#messageLabel.search {
+    background-color: #e3f2fd; /* Azul */
+    color: #0d47a1;
+    border: 1px solid #bbdefb;
 }
 
 /* ===== PROGRESS BAR ===== */
