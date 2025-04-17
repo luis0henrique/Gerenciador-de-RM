@@ -39,8 +39,18 @@ class TableManager:
         header.resizeSection(0, 550)
         header.resizeSection(1, 100)
 
-    def update_table(self, data, sort_column=1, sort_order=Qt.DescendingOrder):
-        if data is None or data.empty:
+    def update_table(self, data=None, sort_column=1, sort_order=Qt.DescendingOrder):
+        """Atualiza a tabela com os dados fornecidos ou do excel_manager"""
+        if data is None:
+            if hasattr(self, 'main_window') and hasattr(self.main_window, 'excel_manager'):
+                if hasattr(self.main_window.excel_manager, 'df'):
+                    data = self.main_window.excel_manager.df
+                else:
+                    return
+            else:
+                return
+
+        if data.empty:
             return
 
         self.full_data = data.sort_values('RM', ascending=False)
@@ -105,13 +115,6 @@ class TableManager:
 
             self.current_chunk += 1
 
-            # Atualiza status bar com porcentagem
-            if hasattr(self, 'main_window') and hasattr(self.main_window, 'statusBar'):
-                loaded = min(self.current_chunk * self.CHUNK_SIZE, len(self.full_data))
-                percent = int((loaded / len(self.full_data)) * 100)
-                self.main_window.statusBar().showMessage(
-                    f"Carregados {loaded} de {len(self.full_data)} registros ({percent}%)", 3000
-                )
         except Exception as e:
             print(f"Erro ao carregar chunk: {e}")
         finally:
@@ -158,9 +161,13 @@ class TableManager:
             text = selected[0].data(Qt.DisplayRole)
             clipboard.setText(str(text))
 
-            # Feedback visual seguro
-            if hasattr(self, 'main_window') and hasattr(self.main_window, 'statusBar'):
-                self.main_window.statusBar().showMessage("Conteúdo copiado!", 2000)
+            # Feedback visual usando o MessageHandler
+            if hasattr(self, 'main_window') and hasattr(self.main_window, 'message_handler'):
+                self.main_window.message_handler.show_message(
+                    "Conteúdo copiado!",
+                    message_type="loading",
+                    timeout=2000  # 2 segundos
+                )
             return True
         return False
 
