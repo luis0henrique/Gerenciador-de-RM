@@ -21,7 +21,6 @@ class FileOperations:
 
         if file_path:
             try:
-                self.main_window.status_bar.showMessage(f"Carregando {os.path.basename(file_path)}...")
                 if self.main_window.excel_manager.load_excel(file_path):
                     self.main_window.current_file = file_path
                     self.main_window._update_table()
