@@ -2,16 +2,18 @@ import os
 import logging
 from PyQt5.QtWidgets import (
     QApplication, QMainWindow, QWidget, QVBoxLayout, QHBoxLayout,
-    QPushButton, QTableView, QMessageBox, QLineEdit, QProgressBar
+    QPushButton, QTableView, QLineEdit, QProgressBar
 )
-from PyQt5.QtCore import Qt, QSize, QThread, pyqtSignal, QTimer
+from PyQt5.QtCore import Qt, QSize, QTimer
 from PyQt5.QtGui import QIcon
 from models.excel_manager import ExcelManager
-from utils.helpers import remove_acentos
+from models.file_loader import FileLoaderThread
+from models.search_manager import SearchManager
 from utils.styles import apply_theme, load_theme_preference
 from utils.ui_helpers import CenterWindowMixin, add_shadow, MessageHandler
-from views.components import TableManager
+from views.window_manager import WindowManager
 from views.components.menu import MenuManager
+from views.components.table import TableManager
 from views.components.file_operations import FileOperations
 MESSAGE_TIMEOUT = 3000  # 3 segundos
 
@@ -30,9 +32,13 @@ class MainWindow(QMainWindow, CenterWindowMixin):
             self.logger.debug("Criando FileOperations e MenuManager...")
             self.file_ops = FileOperations(self)
             self.menu_manager = MenuManager(self)
+            self.window_manager = WindowManager(self)
 
             self._init_ui()
             self._connect_signals()
+
+            # Inicializa o SearchManager após a UI estar pronta
+            self.search_manager = SearchManager(self.excel_manager, self.table_manager, self.message_handler)
 
             # Carrega configurações iniciais
             self._init_settings()
@@ -116,10 +122,8 @@ class MainWindow(QMainWindow, CenterWindowMixin):
             self.message_handler.init_message_widget(position=3)
 
             # Table
-            self.logger.debug("Configurando tabela...")
             self.table = QTableView()
             self.table_manager = TableManager(self.table)
-            self.table_manager.status_bar = self.statusBar
             content_layout.addWidget(self.table)
 
             # Sombras
@@ -136,10 +140,6 @@ class MainWindow(QMainWindow, CenterWindowMixin):
             window_layout_layout.addWidget(self.content_widget)
             window_layout_layout.addStretch(1)
             main_layout.addWidget(window_layout, 1)
-
-            # Status bar
-            self.status_bar = self.statusBar()
-            self.status_bar.setFixedHeight(self.status_bar.sizeHint().height() + 10)
 
             # Progress bar
             self.progress_widget = QWidget()
@@ -173,11 +173,11 @@ class MainWindow(QMainWindow, CenterWindowMixin):
     def _connect_signals(self):
         self.logger.debug("Conectando sinais...")
         try:
-            self.btn_add.clicked.connect(self._open_add_aluno_window)
+            self.btn_add.clicked.connect(self.window_manager.open_add_aluno_window)
             self.btn_save.clicked.connect(self.file_ops.save_file)
 
-            self.search_btn.clicked.connect(self._search_student)
-            self.search_field.returnPressed.connect(self._search_student)
+            self.search_btn.clicked.connect(lambda: self.search_manager.search_student(self.search_field.text()))
+            self.search_field.returnPressed.connect(lambda: self.search_manager.search_student(self.search_field.text()))
             self.search_field.textChanged.connect(self._handle_search_change)
 
             # Configura o cabeçalho para ordenação
@@ -195,14 +195,10 @@ class MainWindow(QMainWindow, CenterWindowMixin):
         try:
             self._init_resources_dir()
 
-            # Carrega o tema preferido
-            self.current_theme = apply_theme(
-                QApplication.instance(),
-                load_theme_preference() or 'light'
-            )
-
             if not self._load_last_file():
-                self.status_bar.showMessage("Pronto para carregar arquivo")
+                # Só mostra "Pronto para carregar dados" se não carregar arquivo automaticamente
+                self.message_handler.set_default_message("Pronto para carregar dados")
+                self.message_handler.show_default_message()
                 self.logger.info("Nenhum arquivo recente encontrado para carregar automaticamente")
 
         except Exception as e:
@@ -222,38 +218,6 @@ class MainWindow(QMainWindow, CenterWindowMixin):
     def _update_table_with_data(self, data):
         self.table_manager.update_table_with_data(data)
 
-    def _search_student(self):
-        search_term = self.search_field.text().strip()
-
-        if not hasattr(self.excel_manager, 'df') or self.excel_manager.df.empty:
-            return
-
-        if not search_term:
-            self._restore_full_list()
-            return
-
-        normalized_term = remove_acentos(search_term.lower())
-
-        if normalized_term.isdigit():
-            result = self.excel_manager.df[self.excel_manager.df['RM'].astype(str) == normalized_term]
-            self.message_handler.show_message(
-                f"Busca por RM encontrou {len(result)} resultados"
-            )
-        else:
-            mask = self.excel_manager.df['Nome do(a) Aluno(a)'].apply(
-                lambda x: normalized_term in remove_acentos(str(x).lower()))
-            result = self.excel_manager.df[mask]
-            self.message_handler.show_message(f"Busca por nome encontrou {len(result)} resultados", "search")
-
-        result_sorted = result.sort_values('Nome do(a) Aluno(a)')
-        self._update_table_with_data(result_sorted)
-        self.table.sortByColumn(0, Qt.AscendingOrder)
-
-    def _restore_full_list(self):
-        if hasattr(self.excel_manager, 'df'):
-            self._update_table()
-            self._update_record_count_message()
-
     def _on_header_clicked(self, logical_index):
         if logical_index == 1:
             current_order = self.table.horizontalHeader().sortIndicatorOrder()
@@ -266,7 +230,6 @@ class MainWindow(QMainWindow, CenterWindowMixin):
         file_path = config.get_last_path()
 
         if file_path and os.path.exists(file_path):
-            self.status_bar.showMessage(f"Carregando último arquivo...")
             # Usar QTimer para carregar em segundo plano
             from PyQt5.QtCore import QTimer
             QTimer.singleShot(100, lambda: self._async_load_file(file_path))
@@ -307,13 +270,15 @@ class MainWindow(QMainWindow, CenterWindowMixin):
                 # Feedback visual de conclusão
                 self.progress_bar.setRange(0, 100)
                 self.progress_bar.setValue(100)
-                self.message_handler.show_message("Carregamento completo", MESSAGE_TIMEOUT)
+                self.message_handler.show_message("Carregamento completo", "loading", MESSAGE_TIMEOUT)
                 self.logger.info(f"Arquivo {file_path} carregado com sucesso")
 
-                # Configura a mensagem padrão
-                self._update_record_count_message()
+                # Configura a mensagem padrão APÓS carregar
+                QTimer.singleShot(MESSAGE_TIMEOUT, self.search_manager.update_record_count_message)
             else:
-                self.message_handler.show_message("Falha no carregamento", MESSAGE_TIMEOUT)
+                self.message_handler.show_message("Falha no carregamento", "loading", MESSAGE_TIMEOUT)
+                # Define mensagem padrão para estado sem arquivo
+                self.message_handler.set_default_message("Pronto para carregar dados")
                 self.logger.warning(f"Falha ao carregar arquivo {file_path}")
 
         except Exception as e:
@@ -334,23 +299,7 @@ class MainWindow(QMainWindow, CenterWindowMixin):
     def _handle_search_change(self, text):
         """Reage a mudanças no campo de busca"""
         if not text.strip():
-            self._restore_full_list()
-
-    def _open_add_aluno_window(self):
-        from models.data_manager import DataManager
-        from views.add_aluno import AddAlunoWindow
-
-        if not hasattr(self.excel_manager, 'df') or self.excel_manager.df.empty:
-            QMessageBox.warning(self, "Aviso", "Carregue um arquivo primeiro")
-            return
-
-        try:
-            data_manager = DataManager(self.excel_manager)
-            self.add_window = AddAlunoWindow(self, data_manager)
-            self.add_window.aluno_adicionado_signal.connect(self._update_table)
-            self.add_window.exec_()
-        except Exception as e:
-            QMessageBox.critical(self, "Erro", f"Falha ao abrir janela:\n{str(e)}")
+            self.search_manager.restore_full_list()
 
     def _init_resources_dir(self):
         """Garante que o diretório de recursos existe"""
@@ -362,30 +311,6 @@ class MainWindow(QMainWindow, CenterWindowMixin):
         content_width = min(self.width(), self.MAX_CONTENT_WIDTH)
         self.content_widget.setFixedWidth(content_width)
         self.table_manager.resize_columns()
-
-    def _update_record_count_message(self):
-        """Atualiza e mostra a mensagem padrão de contagem de registros."""
-        if hasattr(self.excel_manager, 'df'):
-            count = len(self.excel_manager.df)
-            self.message_handler.show_message(f"Exibindo {count} registros", "default")
-
-class FileLoaderThread(QThread):
-    finished = pyqtSignal(bool, str)  # success, file_path
-    progress = pyqtSignal(int)  # progress percentage
-
-    def __init__(self, excel_manager, file_path):
-        super().__init__()
-        self.logger = logging.getLogger(__name__ + ".FileLoaderThread")
-        self.excel_manager = excel_manager
-        self.file_path = file_path
-
-    def run(self):
-        try:
-            success = self.excel_manager.load_excel(self.file_path)
-            self.finished.emit(success, self.file_path)
-        except Exception as e:
-            self.logger.error("Erro durante o carregamento do arquivo", exc_info=True)
-            self.finished.emit(False, self.file_path)
 
 if __name__ == "__main__":
     app = QApplication([])
