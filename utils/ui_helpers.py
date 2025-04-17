@@ -1,4 +1,4 @@
-from PyQt5.QtWidgets import QGraphicsDropShadowEffect, QDesktopWidget, QLabel, QHBoxLayout, QVBoxLayout, QWidget
+from PyQt5.QtWidgets import QGraphicsDropShadowEffect, QDesktopWidget, QLabel, QHBoxLayout, QWidget
 from PyQt5.QtCore import Qt, QTimer
 
 class CenterWindowMixin:
@@ -21,25 +21,26 @@ class MessageHandler:
         self.parent = parent_widget
         self.layout = layout
         self.message_widget = None
-        self.current_message = None
+        self.message_label = None
         self.default_message = None
         self.timer = QTimer()
-        self.timer.timeout.connect(self._show_default_message)
+        self.timer.setSingleShot(True)
+        self.timer.timeout.connect(self._restore_default)
 
     def init_message_widget(self, position=None):
         """Inicializa o widget de mensagem na posição especificada."""
         if self.message_widget is None:
             self.message_widget = QWidget()
             self.message_widget.setObjectName("messageWidget")
-            message_layout = QHBoxLayout(self.message_widget)
-            message_layout.setContentsMargins(0, 5, 0, 5)
+            layout = QHBoxLayout(self.message_widget)
+            layout.setContentsMargins(0, 5, 0, 5)
 
             # Label único para todas as mensagens
             self.message_label = QLabel()
             self.message_label.setObjectName("messageLabel")
-            self.message_label.setProperty("class", "default")  # Classe padrão
+            self.message_label.setProperty("class", "default")
             self.message_label.setAlignment(Qt.AlignCenter)
-            message_layout.addWidget(self.message_label)  # Corrigido: adiciona o label, não o widget
+            layout.addWidget(self.message_label)
 
             # Adiciona ao layout principal
             if position is not None:
@@ -47,53 +48,40 @@ class MessageHandler:
             else:
                 self.layout.addWidget(self.message_widget)
 
-    def set_message_type(self, message_type):
-        """Define o tipo/classe da mensagem para estilização CSS"""
-        if self.message_label:
-            self.message_label.setProperty("class", message_type)
-            self.message_label.style().unpolish(self.message_label)
-            self.message_label.style().polish(self.message_label)
+            # Mostra o widget imediatamente (mesmo vazio)
+            self.message_widget.setVisible(True)
 
-    def set_default_message(self, message_type, text):
-        """Define a mensagem padrão que será mostrada quando não houver outras mensagens."""
-        self.default_message = (message_type, text)
+    def set_default_message(self, text, message_type="default"):
+        """Define a mensagem padrão que será mostrada quando não houver outras"""
+        self.default_message = (text, message_type)
+        self._show_default()  # Mostra imediatamente
 
     def show_message(self, text, message_type="default", timeout=0):
-        """
-        Exibe uma mensagem temporária.
-
-        Args:
-            text: O texto da mensagem
-            message_type: Tipo/classe CSS ('default', 'loading', 'search')
-            timeout: Tempo para voltar à mensagem padrão (ms)
-        """
+        """Mostra uma mensagem temporária"""
         if self.message_widget is None:
             self.init_message_widget()
 
-        self.set_message_type(message_type)
+        if self.timer.isActive():
+            self.timer.stop()
+
+        self.message_label.setProperty("class", message_type)
         self.message_label.setText(text)
-        self.message_widget.setVisible(bool(text))
+        self.message_label.style().polish(self.message_label)
 
         if timeout > 0:
             self.timer.start(timeout)
 
-    def show_default_message(self):
-        """Mostra a mensagem padrão definida."""
+    def _show_default(self):
+        """Mostra a mensagem padrão"""
         if self.default_message and self.message_widget:
-            message_type, text = self.default_message
+            text, message_type = self.default_message
+            self.message_label.setProperty("class", message_type)
             self.message_label.setText(text)
-            self.message_widget.setVisible(bool(text))
+            self.message_label.style().polish(self.message_label)
 
-    def _show_default_message(self):
-        """Mostra a mensagem padrão quando o timer expirar."""
-        self.timer.stop()
-        self.show_default_message()
-
-    def clear_message(self):
-        """Limpa a mensagem atual."""
-        if self.message_widget:
-            self.message_label.setText("")
-            self.message_widget.setVisible(False)
+    def _restore_default(self):
+        """Restaura a mensagem padrão após timeout"""
+        self._show_default()
 
 def add_shadow(widget, blur=5, x_offset=1, y_offset=1, color=Qt.gray):
     """
