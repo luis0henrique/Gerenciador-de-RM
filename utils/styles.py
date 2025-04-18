@@ -1,62 +1,61 @@
 import os
-import json
+from typing import Optional
+from PyQt5.QtWidgets import QApplication
 from models.config_manager import ConfigManager
 
 config = ConfigManager()
 
-def _read_css_section(section_name):
+def _read_css_section(section_name: str) -> str:
     """Lê uma seção específica do arquivo CSS usando marcadores."""
     current_dir = os.path.dirname(os.path.abspath(__file__))
     css_path = os.path.join(current_dir, "styles.css")
+
     try:
         with open(css_path, "r", encoding="utf-8") as f:
             content = f.read()
             start_marker = f"/* $${section_name}_START$$ */"
             end_marker = f"/* $${section_name}_END$$ */"
+
             start_idx = content.find(start_marker)
-            end_idx = content.find(end_marker, start_idx)
-            if start_idx == -1 or end_idx == -1:
+            if start_idx == -1:
                 return ""
+
+            end_idx = content.find(end_marker, start_idx)
+            if end_idx == -1:
+                return ""
+
             return content[start_idx + len(start_marker):end_idx].strip()
     except FileNotFoundError:
-        return ""
+        raise FileNotFoundError(f"Arquivo CSS não encontrado em: {css_path}")
 
-# Funções originais (mantidas para compatibilidade)
-def get_stylesheet():
+def get_stylesheet() -> str:
+    """Obtém a folha de estilo no tema claro (light)."""
     return _read_css_section("LIGHT")
 
-def get_dark_stylesheet():
+def get_dark_stylesheet() -> str:
+    """Obtém a folha de estilo no tema escuro (dark)."""
     return _read_css_section("DARK")
 
-def get_messagebox_stylesheet():
-    return _read_css_section("MESSAGE_BOX")
-
-# Funções auxiliares
-def load_theme_preference():
+def load_theme_preference() -> str:
     """Carrega a preferência de tema salva"""
-    return config.get_theme()
+    return config.get_theme() or 'light'  # Default para light
 
-def apply_theme(app, theme_name):
+def apply_theme(app: QApplication, theme_name: Optional[str] = None) -> str:
     """Aplica o tema globalmente e persiste a preferência"""
-    theme_name = theme_name or 'light'  # Default
+    theme_name = theme_name or load_theme_preference()
     config.set_theme(theme_name)
+
+    # Seleciona a stylesheet apropriada
     stylesheet = get_dark_stylesheet() if theme_name == 'dark' else get_stylesheet()
-    app.setStyleSheet(stylesheet + get_messagebox_stylesheet())
-    # Atualiza widgets existentes
+
+    # Aplica a todos os widgets
+    app.setStyleSheet(stylesheet)
     for widget in app.allWidgets():
         widget.setStyleSheet(stylesheet)
+
     return theme_name
 
-def save_theme_preference(theme_name):
-    """Salva a preferência de tema"""
-    os.makedirs("resources", exist_ok=True)
-    theme_file = os.path.join("resources", "theme_preference.json")
-    with open(theme_file, 'w') as f:
-        json.dump({'theme': theme_name}, f)
-
-def get_current_stylesheet():
+def get_current_stylesheet() -> str:
     """Retorna a folha de estilo atual baseada na preferência salva"""
     theme = load_theme_preference()
-    if theme == 'dark':
-        return get_dark_stylesheet()
-    return get_stylesheet()
+    return get_dark_stylesheet() if theme == 'dark' else get_stylesheet()
