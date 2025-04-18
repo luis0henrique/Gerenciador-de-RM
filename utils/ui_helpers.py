@@ -1,4 +1,5 @@
-from PyQt5.QtWidgets import QGraphicsDropShadowEffect, QDesktopWidget, QLabel, QHBoxLayout, QWidget
+from PyQt5.QtWidgets import (QGraphicsDropShadowEffect, QDesktopWidget, QLabel,
+                            QHBoxLayout, QWidget, QTableWidget)
 from PyQt5.QtCore import Qt, QTimer
 
 class CenterWindowMixin:
@@ -82,6 +83,39 @@ class MessageHandler:
     def _restore_default(self):
         """Restaura a mensagem padrão após timeout"""
         self._show_default()
+
+class TableNavigationMixin:
+    """Mixin para adicionar navegação personalizada em tabelas"""
+
+    def _custom_key_press(self, event, table):
+        """Handle custom keyboard navigation"""
+        if event.key() in (Qt.Key_Return, Qt.Key_Enter, Qt.Key_Tab):
+            self._navegar_para_proxima_celula(table)
+        elif event.key() == Qt.Key_Backtab:
+            self._navegar_para_celula_anterior(table)
+        else:
+            # Chama o keyPressEvent original da tabela
+            QTableWidget.keyPressEvent(table, event)
+
+    def _navegar_para_proxima_celula(self, table):
+        """Move para a próxima célula ou linha"""
+        current_row = table.currentRow()
+        current_col = table.currentColumn()
+
+        if current_col < table.columnCount() - 1:
+            table.setCurrentCell(current_row, current_col + 1)
+        elif current_row < table.rowCount() - 1:
+            table.setCurrentCell(current_row + 1, 0)
+
+    def _navegar_para_celula_anterior(self, table):
+        """Move to previous cell in table"""
+        current_row = table.currentRow()
+        current_col = table.currentColumn()
+
+        if current_col > 0:
+            table.setCurrentCell(current_row, current_col - 1)
+        elif current_row > 0:
+            table.setCurrentCell(current_row - 1, table.columnCount() - 1)
 
 def add_shadow(widget, blur=5, x_offset=1, y_offset=1, color=Qt.gray):
     """

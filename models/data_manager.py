@@ -95,3 +95,52 @@ class DataManager:
             return {'similar': True, **melhor_match}
 
         return {'similar': False, 'nome_existente': None, 'rm_existente': None, 'similarity': 0}
+
+    def validar_alunos_em_lote(self, alunos):
+        """Executa todas as validações em lote"""
+        problemas_rm = []
+        rms_duplicados = []
+        duplicatas = []
+        alunos_validos = []
+        rms_vistos = set()
+
+        for linha, nome, rm in alunos:
+            # RM validation
+            if not rm.isdigit():
+                problemas_rm.append(f"Linha {linha}: RM '{rm}' não é numérico")
+                continue
+
+            rm_int = int(rm)
+
+            # Check for duplicate RMs in current input
+            if rm_int in rms_vistos:
+                rms_duplicados.append((rm_int, f"Duplicado na linha {linha}"))
+                continue
+            rms_vistos.add(rm_int)
+
+            # Check for existing RM in database
+            if self.rm_existe(rm_int):
+                aluno_existente = self.get_aluno_por_rm(rm_int)
+                rms_duplicados.append((rm_int, aluno_existente['Nome do(a) Aluno(a)']))
+                continue
+
+            # Check for similar names
+            similar_check = self.nome_similar_existe(nome)
+            if similar_check.get('similar', False):
+                duplicatas.append({
+                    'linha': linha,
+                    'nome_novo': nome,
+                    'rm_novo': rm_int,
+                    'nome_existente': similar_check['nome_existente'],
+                    'rm_existente': similar_check['rm_existente'],
+                    'similarity': similar_check['similarity']
+                })
+
+            alunos_validos.append((nome, rm_int))
+
+        return {
+            'problemas_rm': problemas_rm,
+            'rms_duplicados': rms_duplicados,
+            'duplicatas': duplicatas,
+            'alunos_validos': alunos_validos
+        }
