@@ -5,7 +5,7 @@ from PyQt5.QtWidgets import (
     QSizePolicy, QWidget
 )
 from PyQt5.QtCore import Qt, pyqtSignal
-from utils.ui_helpers import CenterWindowMixin, add_shadow, TableNavigationMixin
+from utils.ui_helpers import CenterWindowMixin, add_shadow, TableNavigationMixin, CornerSquare
 from utils.helpers import formatar_nome
 from utils.styles import get_current_stylesheet
 from views.components.dialogs import AlunoDialogs
@@ -69,21 +69,36 @@ class AddAlunoWindow(QDialog, CenterWindowMixin, TableNavigationMixin):
         self._setup_buttons(content_layout)
 
     def _setup_table(self, layout):
-        """Configurar a tabela de entrada do aluno"""
-        self.table = QTableWidget(100, 2)
+        """Configura a tabela de entrada do aluno"""
+        # Criação inicial da tabela
+        self.table = QTableWidget(100, 2) # 100 linhas, 2 colunas
         self.table.setHorizontalHeaderLabels(["Nome do(a) Aluno(a)", "RM"])
         self.table.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
+        self.table.setCornerButtonEnabled(False)
+        self.table.setEditTriggers(QTableWidget.AllEditTriggers) # Permite editar todas as células
 
-        # Table configuration
+        # Cabeçalho vertical (índices)
+        vertical_header = self.table.verticalHeader()
+        vertical_header.setSectionResizeMode(QHeaderView.Fixed) # Fixa o tamanho
+        vertical_header.setDefaultSectionSize(32) # Altura padrão das linhas
+        vertical_header.setMinimumSectionSize(32) # Tamanho mínimo
+        vertical_header.setDefaultAlignment(Qt.AlignHCenter | Qt.AlignVCenter)
+        vertical_header.setFixedWidth(50) # Largura fixa para a coluna de índices
+
+        # Cabeçalho horizontal (colunas)
         header = self.table.horizontalHeader()
-        header.setSectionResizeMode(0, QHeaderView.Interactive)
-        header.setSectionResizeMode(1, QHeaderView.Interactive)
-        header.resizeSection(0, 550)
-        header.resizeSection(1, 100)
-        self.table.verticalHeader().setDefaultSectionSize(30)
-        self.table.setEditTriggers(QTableWidget.AllEditTriggers)
-        add_shadow(self.table)
+        header.setSectionResizeMode(0, QHeaderView.Stretch) # Coluna de nomes
+        header.setSectionResizeMode(1, QHeaderView.Fixed) #Coluna de RM
+        header.resizeSection(0, 550) #Largura inicial coluna de nomes
+        header.resizeSection(1, 100) # Largura fixa para coluna de RM
+        header.setFixedHeight(32) # Altura fixa para o header horizontal
 
+        # Cria e posiciona o quadrado manualmente
+        self.corner_square = CornerSquare(self.table)
+        self.corner_square.move(1, 1) # Posiciona no canto superior esquerdo
+        self.corner_square.raise_() # Garante que fique acima dos headers
+
+        add_shadow(self.table)
         layout.addWidget(QLabel("Preencha os dados dos(as) alunos(as) (Nome|RM):"))
         layout.addWidget(self.table)
 
@@ -107,19 +122,25 @@ class AddAlunoWindow(QDialog, CenterWindowMixin, TableNavigationMixin):
         layout.addLayout(btn_layout)
 
     def resizeEvent(self, event):
-        """Ajusta dinamicamente o layout ao redimensionar"""
+        """Ajusta dinamicamente o layout e a posição do quadrado ao redimensionar"""
         super().resizeEvent(event)
+
+        # Ajusta dinamicamente o layout ao redimensionar
         if hasattr(self, 'content_widget'):
             content_width = min(self.width(), self.MAX_CONTENT_WIDTH)
             self.content_widget.setFixedWidth(content_width)
             if self.content_widget.layout():
                 self.content_widget.layout().activate()
 
+        # Ajusta a posição do quadrado quando a tabela é redimensionada
+        if hasattr(self, 'corner_square'):
+            self.corner_square.move(1, 1)
+
     def _connect_signals(self):
         """Conecta os sinais dos botões"""
         self.btn_add_alunos.clicked.connect(self._processar_alunos)
         self.btn_cancel.clicked.connect(self.close)
-        self.table.keyPressEvent = lambda event: self._custom_key_press(event, self.table)
+        self.table.keyPressEvent = lambda event: self.handle_table_key_press(event, self.table)
 
     def _processar_alunos(self):
         """Processa todos os alunos adicionados de forma otimizada"""

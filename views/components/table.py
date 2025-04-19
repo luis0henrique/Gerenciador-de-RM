@@ -1,6 +1,7 @@
 from PyQt5.QtWidgets import QApplication, QHeaderView, QMenu, QAction, QTableView
 from PyQt5.QtCore import Qt, QSortFilterProxyModel
 from PyQt5.QtGui import QStandardItemModel, QStandardItem, QFont, QColor
+from utils.ui_helpers import CornerSquare
 
 class TableManager:
     def __init__(self, table_view):
@@ -17,27 +18,44 @@ class TableManager:
         self._setup_scroll_connection()
 
     def _setup_table(self):
+        """Configura a tabela principal"""
+        # Configurações básicas da tabela
         self.table.setSortingEnabled(True)
         self.table.setCornerButtonEnabled(False)
-        self.table.verticalHeader().setSectionResizeMode(QHeaderView.Fixed)
-        self.table.verticalHeader().setDefaultSectionSize(32)
-        self.table.verticalHeader().setDefaultAlignment(Qt.AlignHCenter | Qt.AlignVCenter)
         self.table.setAlternatingRowColors(True)
         self.table.setSelectionBehavior(QTableView.SelectRows) # !!Quebra a lógica de copiar RM!!
 
+        # Cabeçalho vertical (índices)
+        vertical_header = self.table.verticalHeader()
+        vertical_header.setSectionResizeMode(QHeaderView.Fixed) # Fixa o tamanho
+        vertical_header.setDefaultSectionSize(32) # Altura padrão das linhas
+        vertical_header.setMinimumSectionSize(32) # Tamanho mínimo
+        vertical_header.setDefaultAlignment(Qt.AlignHCenter | Qt.AlignVCenter)
+        vertical_header.setFixedWidth(50) # Largura fixa para a coluna de índices
+
+        # Configuração do modelo de dados e proxy
         model = QStandardItemModel()
         model.setHorizontalHeaderLabels(["Nome do(a) Aluno(a)", "RM"])
         self.proxy_model.setSourceModel(model)
         self.table.setModel(self.proxy_model)
 
+        # Cabeçalho horizontal (colunas)
         header = self.table.horizontalHeader()
-        header.setSectionResizeMode(0, QHeaderView.Interactive)
-        header.setSectionResizeMode(1, QHeaderView.Interactive)
-        # header.setMinimumSectionSize(85)
+        header.setSectionResizeMode(0, QHeaderView.Stretch) # Coluna 0 (Nomes) - expansível
+        header.setSectionResizeMode(1, QHeaderView.Fixed) # Coluna 1 (RM) - tamanho fixo
+        header.resizeSection(0, 550) # Largura da coluna de nomes
+        header.resizeSection(1, 100) # Largura da coluna de RM
+        header.setFixedHeight(32) # Altura fixa para o header horizontal
         header.setDefaultAlignment(Qt.AlignCenter)
+
+        # Cria e posiciona o quadrado manualmente
+        self.corner_square = CornerSquare(self.table)
+        self.corner_square.move(1, 1) # Posiciona no canto superior esquerdo
+        self.corner_square.raise_() # Garante que fique acima dos headers
+
+        # Configurações comentadas que podem ser úteis no futuro
+        # header.setMinimumSectionSize(85)
         # header.setStretchLastSection(False)
-        header.resizeSection(0, 550)
-        header.resizeSection(1, 100)
 
     def update_table(self, data=None, sort_column=1, sort_order=Qt.DescendingOrder):
         """Atualiza a tabela com os dados fornecidos ou do excel_manager"""

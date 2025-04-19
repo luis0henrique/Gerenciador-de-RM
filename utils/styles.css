@@ -17,7 +17,8 @@ QWidget {
 QPushButton {
     padding: 6px 12px;
     min-width: 80px;
-    max-width: 150px;
+    max-width: 200px;
+	max-height: 20px;
     font-weight: 500;
     background-color: #46b3e6;
     color: white;
@@ -125,11 +126,12 @@ QLineEdit:focus, QTextEdit:focus, QPlainTextEdit:focus {
 }
 
 #search_field {
-	background-color: #ffffff;
+    background-color: #ffffff;
     border: 1px solid #bdbdbd;
     padding: 6px;
     margin-right: 0;
     border-radius: 0;
+    max-height: 20px;
 }
 
 #search_field:hover {
@@ -343,11 +345,34 @@ QLabel {
     color: #212121;
 }
 
+/* ===== CORNER BUTTON COVER ===== */
+#cornerSquare {
+    background-color: #46B3E6;
+	color: #eeeeee;
+    border: 1px solid #2CA1D8;
+    border-radius: 0;
+}
+
+#cornerSquare:hover {
+    background-color: #7bc3e4;
+	border: 1px solid #7bc3e4;
+}
+
+#cornerSquare:pressed {
+    background-color: #008dce;
+	border: 1px solid #008dce;
+}
+
+#cornerSquare:disabled {
+    background-color: #bdbdbd;
+	border: 1px solid #bdbdbd;
+}
+
 /* $$LIGHT_END$$ */
 
 
-/* ============================================================== */
-/* ============================================================== */
+/* ========================================================================== */
+/* ========================================================================== */
 
 
 /* === DARK THEME === */
@@ -371,9 +396,9 @@ QPushButton {
     min-width: 80px;
     max-width: 150px;
     font-weight: 500;
-    background-color: #3c6e91;
+    background-color: #2c2c2c;
     color: white;
-    border: 1px solid #24677f;
+    border: 1px solid #2c2c2c;
 	border-radius: 0;
 }
 
@@ -397,12 +422,12 @@ QPushButton:disabled {
 }
 
 #search_btn {
-    background-color: #3c6e91;
+    background-color: #2c2c2c;
     color: white;
     min-width: 10px;
     max-width: 10px;
     max-height: 20px;
-    border: 1px solid #24677f;
+    border: 1px solid #2c2c2c;
     margin-left: 0;
     border-radius: 0;
 }
@@ -476,7 +501,8 @@ QLineEdit:focus, QTextEdit:focus, QPlainTextEdit:focus {
 }
 
 #search_field {
-    border: 1px solid #555555;
+    background-color: #2c2c2c;
+    border: 1px solid #2c2c2c;
     padding: 6px;
     margin-right: 0;
     border-radius: 0;
@@ -507,10 +533,10 @@ QLineEdit:focus, QTextEdit:focus, QPlainTextEdit:focus {
 /* ===== TABLES ===== */
 QTableView {
     background-color: #2c2c2c;
-	alternate-background-color: #3c3c3c;
+	alternate-background-color: #353535;
     selection-background-color: #2e536c; /* Azul escuro */
     gridline-color: #555555;
-    border: 1px solid #5e5e5e;
+    border: 1px solid #242424;
     border-radius: 0;
     font-size: 16px;
 }
@@ -540,6 +566,14 @@ QHeaderView {
     background-color: #2b2b2b;
 }
 
+QHeaderView::section {
+    background-color: #2c2c2c; /* Azul escuro */
+    padding: 6px;
+    border: 1px solid #242424;
+    font-weight: bold;
+    color: #e0e0e0;
+}
+
 QHeaderView::section:hover {
     background-color: #3b8fad;
 	border: 1px solid #3b8fad;
@@ -550,14 +584,6 @@ QHeaderView:disabled {
     color: #7d7d7d;
     border: 1px solid #242424;
     border-radius: 0;
-}
-
-QHeaderView::section {
-    background-color: #3c6e91; /* Azul escuro */
-    padding: 6px;
-    border: 1px solid #2f5c77;
-    font-weight: bold;
-    color: #e0e0e0;
 }
 
 QHeaderView::section:checked {
@@ -667,6 +693,116 @@ QDialog {
 
 QLabel {
     color: #e0e0e0;
+}
+
+/* Barra de rolagem vertical */
+QScrollBar:vertical {
+    background: #2D2D2D;
+    margin: 0px;
+}
+
+/* Handle (parte que desliza) da barra de rolagem vertical */
+QScrollBar::handle:vertical {
+    background: #5E5E5E;
+    min-height: 20px;
+    border-radius: 0;
+    margin-top: 25px; /* Espaço para o botão superior */
+    margin-bottom: 16px; /* Espaço para o botão inferior */
+}
+
+/* Hover no handle vertical */
+QScrollBar::handle:vertical:hover {
+    background: gray;
+}
+
+/* Botão superior da barra de rolagem vertical */
+QScrollBar::sub-line:vertical {
+    background: #2d2d2d; /* Cor personalizada para o botão superior */
+    height: 25px; /* Altura do botão */
+    subcontrol-origin: margin;
+    subcontrol-position: top; /* Posiciona no topo */
+    /* Restaurando a seta */
+    image: url(assets/images/arrow_up.png); /* Substitua pelo caminho da imagem da seta */
+    border: none; /* Sem bordas para manter o design limpo */
+}
+
+QScrollBar::sub-line:vertical:hover {
+    background: gray;
+}
+
+/* Botão inferior da barra de rolagem vertical */
+QScrollBar::add-line:vertical {
+    background: #444444; /* Cor personalizada para o botão inferior */
+    height: 16px; /* Altura do botão */
+    subcontrol-origin: margin;
+    subcontrol-position: bottom; /* Posiciona na parte inferior */
+}
+
+/* Remove o fundo entre os botões e o handle */
+QScrollBar::add-page:vertical, QScrollBar::sub-page:vertical {
+    background: none;
+}
+
+/* Barra de rolagem horizontal */
+QScrollBar:horizontal {
+    background: #2D2D2D;
+    margin: 0px;
+}
+
+/* Handle (parte que desliza) da barra de rolagem horizontal */
+QScrollBar::handle:horizontal {
+    background: #5E5E5E;
+    border-radius: 0;
+    margin-left: 16px; /* Espaço para o botão esquerdo */
+    margin-right: 16px; /* Espaço para o botão direito */
+}
+
+/* Hover no handle horizontal */
+QScrollBar::handle:horizontal:hover {
+    background: #808080;
+}
+
+/* Botão esquerdo da barra de rolagem horizontal */
+QScrollBar::sub-line:horizontal {
+    background: #444444; /* Cor personalizada para o botão esquerdo */
+    width: 16px; /* Largura do botão */
+    subcontrol-origin: margin;
+    subcontrol-position: left; /* Posiciona à esquerda */
+    border-top-left-radius: 0;
+    border-bottom-left-radius: 0;
+}
+
+/* Botão direito da barra de rolagem horizontal */
+QScrollBar::add-line:horizontal {
+    background: #444444; /* Cor personalizada para o botão direito */
+    width: 16px; /* Largura do botão */
+    subcontrol-origin: margin;
+    subcontrol-position: right; /* Posiciona à direita */
+    border-top-right-radius: 0;
+    border-bottom-right-radius: 0;
+}
+
+/* Remove o fundo entre os botões e o handle */
+QScrollBar::add-page:horizontal, QScrollBar::sub-page:horizontal {
+    background: none;
+}
+
+/* ===== CORNER BUTTON COVER ===== */
+#cornerSquare {
+    background-color: #2c2c2c;
+	color: #e0e0e0;
+    border: 1px solid #242424;
+    border-radius: 0;
+}
+
+#cornerSquare:hover {
+    background-color: #3b8fad;
+	border: 1px solid #3b8fad;
+}
+
+#cornerSquare:disabled {
+    background-color: #1c1c1c;
+	border: 1px solid #242424;
 }
 
 /* $$DARK_END$$ */

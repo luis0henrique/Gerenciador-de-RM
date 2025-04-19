@@ -1,6 +1,7 @@
 from PyQt5.QtWidgets import (QGraphicsDropShadowEffect, QDesktopWidget, QLabel,
                             QHBoxLayout, QVBoxLayout, QWidget, QTableWidget)
 from PyQt5.QtCore import Qt, QTimer
+from PyQt5.QtGui import QColor
 from typing import Optional, Tuple, Union
 
 # Constantes para tipos de mensagem
@@ -117,8 +118,16 @@ class TableNavigationMixin:
         elif current_row > 0:
             table.setCurrentCell(current_row - 1, table.columnCount() - 1)
 
+class CornerSquare(QLabel):
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.setObjectName("cornerSquare")
+        self.setFixedSize(50, 32)  # Altura igual ao header
+        self.setAlignment(Qt.AlignCenter)
+        self.setText("#")
+
 def add_shadow(widget: QWidget, blur: int = 5, x_offset: int = 1,
-              y_offset: int = 1, color: Qt.GlobalColor = Qt.gray) -> None:
+              y_offset: int = 1, color: Qt.GlobalColor = QColor("#808080")) -> None:
     """Adiciona efeito de sombra a um widget.
 
     Args:
