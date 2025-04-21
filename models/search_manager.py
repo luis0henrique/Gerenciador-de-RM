@@ -22,14 +22,12 @@ class SearchManager:
 
         if normalized_term.isdigit():
             result = self.excel_manager.df[self.excel_manager.df['RM'].astype(str) == normalized_term]
-            self.message_handler.show_message(
-                f"Busca por RM encontrou {len(result)} resultados"
-            )
+            self.message_handler.show_search_results(len(result), by_rm=True)
         else:
             mask = self.excel_manager.df['Nome do(a) Aluno(a)'].apply(
                 lambda x: normalized_term in remove_acentos(str(x).lower()))
             result = self.excel_manager.df[mask]
-            self.message_handler.show_message(f"Busca por nome encontrou {len(result)} resultados", "search")
+            self.message_handler.show_search_results(len(result), by_rm=False)
 
         result_sorted = result.sort_values('Nome do(a) Aluno(a)')
         self.table_manager.update_table_with_data(result_sorted)
@@ -39,12 +37,7 @@ class SearchManager:
     def restore_full_list(self):
         """Restaura a lista completa de alunos"""
         if hasattr(self.excel_manager, 'df'):
+            record_count = len(self.excel_manager.df)
+            self.message_handler.show_record_count(record_count)
             self.table_manager.update_table()
-            self.update_record_count_message()
         return True
-
-    def update_record_count_message(self):
-        """Atualiza a mensagem de contagem de registros"""
-        if hasattr(self.excel_manager, 'df'):
-            count = len(self.excel_manager.df)
-            self.message_handler.set_default_message(f"Exibindo {count} registros", "default")

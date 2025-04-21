@@ -82,13 +82,13 @@ class ConfigManager:
 
     # Métodos para last_path
     def get_last_path(self) -> Optional[str]:
-        """Retorna o último caminho acessado"""
+        """Retorna o último arquivo acessado (caminho completo)"""
         path = self.config.get("last_path")
         return path if path and os.path.exists(path) else None
 
     def set_last_path(self, file_path: str):
-        """Define o último caminho acessado"""
-        if file_path:
+        """Define o último caminho acessado (caminho completo do arquivo)"""
+        if file_path and os.path.exists(file_path):  # Verifica se o arquivo existe
             self.config["last_path"] = file_path
             self.save_config()
 

@@ -79,22 +79,28 @@ class MenuManager:
         """Atualiza o menu dinamicamente quando é aberto"""
         self.recent_menu.clear()
 
-        recent_files = self.main_window.file_ops.get_recent_files()
+        try:
+            recent_files = self.main_window.file_ops.get_recent_files()
 
-        if not recent_files:
-            action = self.recent_menu.addAction("Nenhum arquivo recente")
+            if not recent_files:
+                action = self.recent_menu.addAction("Nenhum arquivo recente")
+                action.setEnabled(False)
+                return
+
+            # Limita a mostrar os 10 mais recentes
+            for i, file_path in enumerate(recent_files[:10]):
+                # Mostra caminho completo como tooltip
+                action = self.recent_menu.addAction(f"{i+1}. {os.path.basename(file_path)}")
+                action.setToolTip(file_path)
+                action.triggered.connect(lambda checked, fp=file_path: self._load_recent_file(fp))
+
+        except Exception as e:
+            self.main_window.logger.error("Erro ao atualizar menu recentes", exc_info=True)
+            action = self.recent_menu.addAction("Erro ao carregar recentes")
             action.setEnabled(False)
-            return
-
-        for i, file_path in enumerate(recent_files):
-            action = self.recent_menu.addAction(f"{i+1}. {os.path.basename(file_path)}")
-            action.triggered.connect(lambda checked, fp=file_path: self._load_recent_file(fp))
 
     def _load_recent_file(self, file_path):
         """Carrega um arquivo recente"""
-        success = self.main_window.file_ops.load_recent_file(file_path)
-        if not success:
-            # Se falhar, remove da lista e atualiza o menu
-            self.main_window.file_ops.recent_files.remove(file_path)
-            self.main_window.file_ops._save_recent_files()
-            self._update_recent_menu()
+        self.main_window.file_ops.load_file(file_path)
+        # Não precisamos mais remover manualmente arquivos inválidos
+        # pois o FileOperations já faz isso automaticamente

@@ -1,8 +1,8 @@
 from PyQt5.QtWidgets import (QGraphicsDropShadowEffect, QLabel, QHBoxLayout,
                              QVBoxLayout, QWidget, QTableWidget, QApplication)
-from PyQt5.QtCore import Qt, QTimer
+from PyQt5.QtCore import Qt
 from PyQt5.QtGui import QColor
-from typing import Optional, Tuple, Union
+from typing import Optional, Union
 from utils.styles import get_shadow_color
 
 # Constantes para tipos de mensagem
@@ -10,6 +10,8 @@ MESSAGE_DEFAULT = "default"
 MESSAGE_SUCCESS = "success"
 MESSAGE_ERROR = "error"
 MESSAGE_WARNING = "warning"
+MESSAGE_LOADING = "loading"
+MESSAGE_SEARCH = "search"
 
 class CenterWindowMixin:
     def center_window(self) -> None:
@@ -23,17 +25,19 @@ class CenterWindowMixin:
         center_point = screen_geometry.center()
         frame_geometry.moveCenter(center_point)
         self.move(frame_geometry.topLeft())
+
 class MessageHandler:
     def __init__(self, parent_widget: QWidget, layout: Union[QVBoxLayout, QHBoxLayout]):
-        """ Inicializa o manipulador de mensagens."""
+        """Inicializa o manipulador de mensagens."""
         self.parent = parent_widget
         self.layout = layout
         self.message_widget: Optional[QWidget] = None
         self.message_label: Optional[QLabel] = None
-        self.default_message: Optional[Tuple[str, str]] = None
-        self.timer = QTimer()
-        self.timer.setSingleShot(True)
-        self.timer.timeout.connect(self._restore_default)
+        self.current_message: Optional[str] = None
+
+        # Inicializa o widget imediatamente
+        self.init_message_widget()
+        self.show_message("Pronto para carregar dados", MESSAGE_DEFAULT)
 
     def init_message_widget(self, position: Optional[int] = None) -> None:
         """Inicializa o widget de mensagem na posição especificada."""
@@ -56,38 +60,37 @@ class MessageHandler:
 
             self.message_widget.setVisible(True)
 
-    def set_default_message(self, text: str, message_type: str = MESSAGE_DEFAULT) -> None:
-        """Define a mensagem padrão que será mostrada quando não houver outras"""
-        self.default_message = (text, message_type)
-        self._show_default()
-
-    def show_message(self, text: str, message_type: str = MESSAGE_DEFAULT,
-                    timeout: int = 0) -> None:
-        """Mostra uma mensagem temporária"""
+    def show_message(self, text: str, message_type: str = MESSAGE_DEFAULT) -> None:
+        """Mostra uma mensagem persistente até ser substituída por outra."""
         if self.message_widget is None:
             self.init_message_widget()
 
-        if self.timer.isActive():
-            self.timer.stop()
-
+        self.current_message = (text, message_type)
         self.message_label.setProperty("class", message_type)
         self.message_label.setText(text)
         self.message_label.style().polish(self.message_label)
+        self.message_widget.setVisible(True)
 
-        if timeout > 0:
-            self.timer.start(timeout)
+    def show_loading(self):
+        """Mostra mensagem de carregamento."""
+        self.show_message("Carregando...", MESSAGE_LOADING)
 
-    def _show_default(self) -> None:
-        """Mostra a mensagem padrão."""
-        if self.default_message and self.message_widget:
-            text, message_type = self.default_message
-            self.message_label.setProperty("class", message_type)
-            self.message_label.setText(text)
-            self.message_label.style().polish(self.message_label)
+    def show_error(self, message: str):
+        """Mostra mensagem de erro."""
+        self.show_message(message, MESSAGE_ERROR)
 
-    def _restore_default(self) -> None:
-        """Restaura a mensagem padrão após timeout."""
-        self._show_default()
+    def show_success(self, message: str):
+        """Mostra mensagem de sucesso."""
+        self.show_message(message, MESSAGE_SUCCESS)
+
+    def show_search_results(self, count: int, by_rm: bool = False):
+        """Mostra resultados de busca."""
+        search_type = "RM" if by_rm else "nome"
+        self.show_message(f"Busca por {search_type} encontrou {count} resultados", MESSAGE_SEARCH)
+
+    def show_record_count(self, count: int):
+        """Mostra contagem de registros."""
+        self.show_message(f"Exibindo {count} registros", MESSAGE_DEFAULT)
 
 class TableNavigationMixin:
     """Mixin para adicionar navegação personalizada em tabelas."""

@@ -4,10 +4,9 @@ from PyQt5.QtWidgets import (
     QApplication, QMainWindow, QWidget, QVBoxLayout, QHBoxLayout,
     QPushButton, QTableView, QLineEdit, QProgressBar
 )
-from PyQt5.QtCore import Qt, QSize, QTimer
+from PyQt5.QtCore import Qt, QSize
 from PyQt5.QtGui import QIcon
 from models.excel_manager import ExcelManager
-from models.file_loader import FileLoaderThread
 from models.search_manager import SearchManager
 from utils.styles import apply_theme, load_theme_preference
 from utils.ui_helpers import CenterWindowMixin, add_shadow, MessageHandler, update_shadows_on_theme_change
@@ -15,7 +14,6 @@ from views.window_manager import WindowManager
 from views.components.menu import MenuManager
 from views.components.table import TableManager
 from views.components.file_operations import FileOperations
-MESSAGE_TIMEOUT = 3000  # 3 segundos
 
 class MainWindow(QMainWindow, CenterWindowMixin):
     def __init__(self):
@@ -119,7 +117,6 @@ class MainWindow(QMainWindow, CenterWindowMixin):
 
             # Inicializa o MessageHandler na posição correta (índice 3)
             self.message_handler = MessageHandler(self.content_widget, content_layout)
-            self.message_handler.init_message_widget(position=3)
 
             # Table
             self.table = QTableView()
@@ -197,10 +194,7 @@ class MainWindow(QMainWindow, CenterWindowMixin):
         try:
             self._init_resources_dir()
 
-            if not self._load_last_file():
-                # Só mostra "Pronto para carregar dados" se não carregar arquivo automaticamente
-                self.message_handler.set_default_message("Pronto para carregar dados")
-                self.message_handler.show_default_message()
+            if not self.file_ops.load_last_file():
                 self.logger.info("Nenhum arquivo recente encontrado para carregar automaticamente")
 
         except Exception as e:
@@ -237,73 +231,6 @@ class MainWindow(QMainWindow, CenterWindowMixin):
             current_order = self.table.horizontalHeader().sortIndicatorOrder()
             self.table.sortByColumn(logical_index, current_order)
 
-    def _load_last_file(self):
-        """Carrega último arquivo automaticamente em segundo plano"""
-        from models.config_manager import ConfigManager
-        config = ConfigManager()
-        file_path = config.get_last_path()
-
-        if file_path and os.path.exists(file_path):
-            # Usar QTimer para carregar em segundo plano
-            from PyQt5.QtCore import QTimer
-            QTimer.singleShot(100, lambda: self._async_load_file(file_path))
-            return True
-        return False
-
-    def _async_load_file(self, file_path):
-        """Inicia o carregamento do arquivo"""
-        self.logger.info(f"Iniciando carregamento do arquivo: {file_path}")
-        try:
-            # Configura UI
-            self.progress_bar.setRange(0, 0)
-            self.progress_bar.setVisible(True)
-            self.message_handler.show_message("Carregando arquivo...", "loading")
-            self.setEnabled(False)
-            QApplication.processEvents()
-
-            # Cria e inicia thread
-            self.loader_thread = FileLoaderThread(self.excel_manager, file_path)
-            self.loader_thread.finished.connect(self._on_file_loaded)
-            self.loader_thread.start()
-
-        except Exception as e:
-            self.logger.error("Erro ao iniciar carregamento do arquivo", exc_info=True)
-            raise
-
-    def _on_file_loaded(self, success, file_path):
-        """Finaliza o carregamento"""
-        self.logger.info(f"Carregamento concluído. Sucesso: {success}")
-        try:
-            if success:
-                # Atualiza interface
-                self.current_file = file_path
-                self._update_table()
-                self.file_ops.config.add_recent_file(file_path)
-                self.setWindowTitle(f"Gerenciador de RMs - {os.path.basename(file_path)}")
-
-                # Feedback visual de conclusão
-                self.progress_bar.setRange(0, 100)
-                self.progress_bar.setValue(100)
-                self.message_handler.show_message("Carregamento completo", "loading", MESSAGE_TIMEOUT)
-                self.logger.info(f"Arquivo {file_path} carregado com sucesso")
-
-                # Configura a mensagem padrão APÓS carregar
-                QTimer.singleShot(MESSAGE_TIMEOUT, self.search_manager.update_record_count_message)
-            else:
-                self.message_handler.show_message("Falha no carregamento", "loading", MESSAGE_TIMEOUT)
-                # Define mensagem padrão para estado sem arquivo
-                self.message_handler.set_default_message("Pronto para carregar dados")
-                self.logger.warning(f"Falha ao carregar arquivo {file_path}")
-
-        except Exception as e:
-            self.logger.error("Erro no pós-carregamento", exc_info=True)
-
-        finally:
-            # Restaura UI
-            QTimer.singleShot(500, lambda: self.progress_bar.setVisible(False))
-            self.setEnabled(True)
-            self.loader_thread = None
-
     def _update_buttons_state(self):
         """Atualiza estado dos botões"""
         has_data = hasattr(self.excel_manager, 'df') and not self.excel_manager.df.empty
@@ -316,7 +243,7 @@ class MainWindow(QMainWindow, CenterWindowMixin):
             self.search_manager.restore_full_list()
 
     def _init_resources_dir(self):
-        """Garante que o diretório de recursos existe"""
+        """Garante que o diretório de recursos existe para carregar e salvar os arquivos"""
         os.makedirs("resources", exist_ok=True)
 
     def resizeEvent(self, event):
