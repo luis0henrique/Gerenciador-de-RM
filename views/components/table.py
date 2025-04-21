@@ -189,6 +189,10 @@ class TableManager:
             return True
         return False
 
+    def clear_selection(self):
+        """Limpa a seleção da tabela"""
+        self.table.clearSelection()
+
     def resize_columns(self):
         total_width = self.table.viewport().width()
         rm_width = self.table.columnWidth(1)
