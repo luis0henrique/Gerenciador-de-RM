@@ -1,5 +1,4 @@
 from PyQt5.QtWidgets import QMessageBox, QDialog, QVBoxLayout, QTextEdit, QDialogButtonBox, QLabel
-from PyQt5.QtCore import Qt
 
 class AlunoDialogs:
     @staticmethod
