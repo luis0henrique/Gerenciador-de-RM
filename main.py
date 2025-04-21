@@ -4,6 +4,7 @@ import logging
 import argparse
 from pathlib import Path
 from PyQt5.QtWidgets import QApplication
+from PyQt5.QtCore import Qt, QCoreApplication
 
 def setup_logging(debug=False):
     """Configura o sistema de logging, limpando o arquivo a cada execução"""
@@ -23,7 +24,17 @@ def setup_logging(debug=False):
         ]
     )
 
+def enable_hi_dpi():
+    """Configurações para suporte a High DPI"""
+    QCoreApplication.setAttribute(Qt.AA_EnableHighDpiScaling)
+    QCoreApplication.setAttribute(Qt.AA_UseHighDpiPixmaps)
+    os.environ["QT_ENABLE_HIGHDPI_SCALING"] = "1"
+    os.environ["QT_SCALE_FACTOR"] = "1"
+    os.environ["QT_AUTO_SCREEN_SCALE_FACTOR"] = "1"
+
 def main():
+    enable_hi_dpi()
+
     parser = argparse.ArgumentParser()
     parser.add_argument('--debug', action='store_true', help='Enable debug logging')
     args = parser.parse_args()
