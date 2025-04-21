@@ -3,7 +3,6 @@ from .styles import (
     get_dark_stylesheet,
     get_current_stylesheet,
     load_theme_preference,
-    save_theme_preference,
     apply_theme
 )
 
