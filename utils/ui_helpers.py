@@ -1,8 +1,9 @@
-from PyQt5.QtWidgets import (QGraphicsDropShadowEffect, QDesktopWidget, QLabel,
-                            QHBoxLayout, QVBoxLayout, QWidget, QTableWidget)
+from PyQt5.QtWidgets import (QGraphicsDropShadowEffect, QLabel, QHBoxLayout,
+                             QVBoxLayout, QWidget, QTableWidget, QApplication)
 from PyQt5.QtCore import Qt, QTimer
 from PyQt5.QtGui import QColor
 from typing import Optional, Tuple, Union
+from utils.styles import get_shadow_color
 
 # Constantes para tipos de mensagem
 MESSAGE_DEFAULT = "default"
@@ -12,12 +13,16 @@ MESSAGE_WARNING = "warning"
 
 class CenterWindowMixin:
     def center_window(self) -> None:
-        """Centraliza a janela na tela."""
+        """Centraliza a janela na tela usando QScreen (recomendado)."""
         frame_geometry = self.frameGeometry()
-        center_point = QDesktopWidget().availableGeometry().center()
+        screen = QApplication.primaryScreen()
+        if not screen:
+            return
+
+        screen_geometry = screen.availableGeometry()
+        center_point = screen_geometry.center()
         frame_geometry.moveCenter(center_point)
         self.move(frame_geometry.topLeft())
-
 class MessageHandler:
     def __init__(self, parent_widget: QWidget, layout: Union[QVBoxLayout, QHBoxLayout]):
         """ Inicializa o manipulador de mensagens."""
@@ -36,7 +41,7 @@ class MessageHandler:
             self.message_widget = QWidget()
             self.message_widget.setObjectName("messageWidget")
             layout = QHBoxLayout(self.message_widget)
-            layout.setContentsMargins(0, 5, 0, 5)
+            layout.setContentsMargins(0, 0, 0, 0)
 
             self.message_label = QLabel()
             self.message_label.setObjectName("messageLabel")
@@ -126,20 +131,39 @@ class CornerSquare(QLabel):
         self.setAlignment(Qt.AlignCenter)
         self.setText("#")
 
-def add_shadow(widget: QWidget, blur: int = 5, x_offset: int = 1,
-              y_offset: int = 1, color: Qt.GlobalColor = QColor("#808080")) -> None:
-    """Adiciona efeito de sombra a um widget.
+def add_shadow(
+    widget: QWidget,
+    blur: int = 5,
+    x_offset: int = 2,
+    y_offset: int = 2,
+    color: Optional[QColor] = None
+) -> None:
+    """Adiciona efeito de sombra a um widget com cor baseada no tema.
 
     Args:
         widget: O widget que receberá a sombra
-        blur: Raio do desfoque da sombra (default: 5)
-        x_offset: Deslocamento horizontal (default: 1)
-        y_offset: Deslocamento vertical (default: 1)
-        color: Cor da sombra (default: Qt.gray)
+        blur: Raio do desfoque da sombra (default: 10)
+        x_offset: Deslocamento horizontal (default: 0)
+        y_offset: Deslocamento vertical (default: 0)
+        color: Opcional - Cor customizada da sombra (se None, usa cor do tema)
     """
+    from utils.styles import get_shadow_color  # Importação local para evitar circular
+
     shadow = QGraphicsDropShadowEffect(widget)
     shadow.setBlurRadius(blur)
     shadow.setXOffset(x_offset)
     shadow.setYOffset(y_offset)
+
+    if color is None:
+        color = QColor(get_shadow_color())
+
     shadow.setColor(color)
     widget.setGraphicsEffect(shadow)
+
+def update_shadows_on_theme_change(widgets: list[QWidget]) -> None:
+    """Atualiza as sombras de uma lista de widgets quando o tema muda."""
+    for widget in widgets:
+        if widget.graphicsEffect():
+            effect = widget.graphicsEffect()
+            if isinstance(effect, QGraphicsDropShadowEffect):
+                effect.setColor(QColor(get_shadow_color()))

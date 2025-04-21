@@ -10,7 +10,7 @@ from models.excel_manager import ExcelManager
 from models.file_loader import FileLoaderThread
 from models.search_manager import SearchManager
 from utils.styles import apply_theme, load_theme_preference
-from utils.ui_helpers import CenterWindowMixin, add_shadow, MessageHandler
+from utils.ui_helpers import CenterWindowMixin, add_shadow, MessageHandler, update_shadows_on_theme_change
 from views.window_manager import WindowManager
 from views.components.menu import MenuManager
 from views.components.table import TableManager
@@ -127,14 +127,15 @@ class MainWindow(QMainWindow, CenterWindowMixin):
             content_layout.addWidget(self.table)
 
             # Sombras
-            elements_with_shadow = [
+            self.elements_with_shadow = [
                 self.btn_add,
                 self.btn_save,
                 self.search_btn,
                 self.search_field,
-                self.table
+                self.table,
+                self.message_handler.message_widget
             ]
-            for element in elements_with_shadow:
+            for element in self.elements_with_shadow:
                 add_shadow(element)
 
             window_layout_layout.addWidget(self.content_widget)
@@ -159,6 +160,7 @@ class MainWindow(QMainWindow, CenterWindowMixin):
             progress_layout.addStretch()
 
             main_layout.addWidget(self.progress_widget)
+            self.centralWidget().installEventFilter(self)
 
             # Aplica tema
             self.logger.debug("Aplicando tema...")
@@ -204,6 +206,18 @@ class MainWindow(QMainWindow, CenterWindowMixin):
         except Exception as e:
             self.logger.error("Erro nas configurações iniciais", exc_info=True)
             raise
+
+    def update_ui_on_theme_change(self):
+        """Atualiza elementos da UI quando o tema muda."""
+        elements_with_shadow = [
+            self.btn_add,
+            self.btn_save,
+            self.search_btn,
+            self.search_field,
+            self.table,
+            self.message_handler.message_widget
+        ]
+        update_shadows_on_theme_change(elements_with_shadow)
 
     def _update_table(self, data=None):
         if data is None:
@@ -311,6 +325,14 @@ class MainWindow(QMainWindow, CenterWindowMixin):
         content_width = min(self.width(), self.MAX_CONTENT_WIDTH)
         self.content_widget.setFixedWidth(content_width)
         self.table_manager.resize_columns()
+
+    def eventFilter(self, obj, event):
+        """Filtra eventos para desselecionar a tabela quando clicar fora"""
+        if event.type() == event.MouseButtonPress:
+            if not self.table.underMouse():
+                self.table_manager.clear_selection()
+
+        return super().eventFilter(obj, event)
 
 if __name__ == "__main__":
     app = QApplication([])

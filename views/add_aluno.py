@@ -5,7 +5,7 @@ from PyQt5.QtWidgets import (
     QSizePolicy, QWidget
 )
 from PyQt5.QtCore import Qt, pyqtSignal
-from utils.ui_helpers import CenterWindowMixin, add_shadow, TableNavigationMixin, CornerSquare
+from utils.ui_helpers import CenterWindowMixin, add_shadow, update_shadows_on_theme_change, TableNavigationMixin, CornerSquare
 from utils.helpers import formatar_nome
 from utils.styles import get_current_stylesheet
 from views.components.dialogs import AlunoDialogs
@@ -98,9 +98,20 @@ class AddAlunoWindow(QDialog, CenterWindowMixin, TableNavigationMixin):
         self.corner_square.move(1, 1) # Posiciona no canto superior esquerdo
         self.corner_square.raise_() # Garante que fique acima dos headers
 
+        # Aplica sombra dinâmica
         add_shadow(self.table)
+
         layout.addWidget(QLabel("Preencha os dados dos(as) alunos(as) (Nome|RM):"))
         layout.addWidget(self.table)
+
+    def update_ui_on_theme_change(self):
+        """Atualiza elementos da UI quando o tema muda."""
+        elements_with_shadow = [
+            self.table,
+            self.btn_add_alunos,
+            self.btn_cancel
+        ]
+        update_shadows_on_theme_change(elements_with_shadow)
 
     def _setup_buttons(self, layout):
         """Configure the action buttons"""
@@ -112,8 +123,10 @@ class AddAlunoWindow(QDialog, CenterWindowMixin, TableNavigationMixin):
         # Apply button styling
         self.btn_add_alunos.setProperty("class", "btn_add_alunos")
         self.btn_cancel.setProperty("class", "btn_cancel")
-        add_shadow(self.btn_add_alunos, blur=5, x_offset=1, y_offset=1)
-        add_shadow(self.btn_cancel, blur=5, x_offset=1, y_offset=1)
+
+        # Aplica sombras dinâmicas
+        add_shadow(self.btn_add_alunos)
+        add_shadow(self.btn_cancel)
 
         btn_layout.addStretch()
         btn_layout.addWidget(self.btn_add_alunos)

@@ -2,6 +2,7 @@ import os
 from typing import Optional
 from PyQt5.QtWidgets import QApplication
 from models.config_manager import ConfigManager
+from PyQt5.QtGui import QColor
 
 config = ConfigManager()
 
@@ -28,9 +29,12 @@ def apply_theme(app: QApplication, theme_name: Optional[str] = None) -> str:
     stylesheet = _read_css_file(theme_name)
     app.setStyleSheet(stylesheet)
 
-    # Opcional: Atualiza widgets já existentes
+    # Atualiza widgets já existentes
     for widget in app.allWidgets():
         widget.setStyleSheet(stylesheet)
+        # Notifica sobre mudança de tema
+        if hasattr(widget, 'update_ui_on_theme_change'):
+            widget.update_ui_on_theme_change()
 
     return theme_name
 
@@ -46,3 +50,8 @@ def get_stylesheet() -> str:
 def get_dark_stylesheet() -> str:
     """Retorna a folha de estilo do tema escuro (para compatibilidade)."""
     return _read_css_file("dark")
+
+def get_shadow_color() -> QColor:
+    """Retorna a cor da sombra baseada no tema atual."""
+    theme = load_theme_preference()
+    return QColor(85, 85, 85, 100) if theme == "light" else QColor(0, 0, 0, 100)
