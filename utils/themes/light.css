@@ -304,21 +304,27 @@ QStatusBar {
 }
 
 #messageLabel.default {
+    background-color: #e3f2fd;
+    color: #1565c0;
+    border: 1px solid #bbdefb;
+}
+
+#messageLabel.loading {
     background-color: #e8f5e9;
     color: #2e7d32;
     border: 1px solid #c8e6c9;
 }
 
-#messageLabel.loading {
-    background-color: #fff3e0;
-    color: #e65100;
-    border: 1px solid #ffe0b2;
+#messageLabel.search {
+    background-color: #e1f5fe;
+    color: #0277bd;
+    border: 1px solid #b3e5fc;
 }
 
-#messageLabel.search {
-    background-color: #e3f2fd;
-    color: #0d47a1;
-    border: 1px solid #bbdefb;
+#messageLabel.success {
+    background-color: #e8f5e9;
+    color: #1b5e20;
+    border: 1px solid #c8e6c9;
 }
 
 /* ===== PROGRESS BAR ===== */
