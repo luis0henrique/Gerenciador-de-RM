@@ -73,6 +73,10 @@ class AddAlunoWindow(QDialog, CenterWindowMixin, TableNavigationMixin):
         # Criação inicial da tabela
         self.table = QTableWidget(100, 2) # 100 linhas, 2 colunas
         self.table.setHorizontalHeaderLabels(["Nome do(a) Aluno(a)", "RM"])
+        self.table.setToolTip(
+            "Digite os nomes dos alunos na primeira coluna e os RMs na segunda\n"
+            "Use Enter / Tab / Shift+Tab para navegar entre células\n"
+        )
         self.table.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
         self.table.setCornerButtonEnabled(False)
         self.table.setEditTriggers(QTableWidget.AllEditTriggers) # Permite editar todas as células
@@ -118,7 +122,9 @@ class AddAlunoWindow(QDialog, CenterWindowMixin, TableNavigationMixin):
         btn_layout = QHBoxLayout()
 
         self.btn_add_alunos = QPushButton("Adicionar Alunos(as)")
+        self.btn_add_alunos.setToolTip("Valida e adiciona os alunos ao arquivo")
         self.btn_cancel = QPushButton("Cancelar")
+        self.btn_cancel.setToolTip("Fecha esta janela sem adicionar alunos")
 
         # Apply button styling
         self.btn_add_alunos.setProperty("class", "btn_add_alunos")

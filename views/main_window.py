@@ -84,8 +84,10 @@ class MainWindow(QMainWindow, CenterWindowMixin):
             toolbar = QHBoxLayout()
             self.btn_add = QPushButton(" Adicionar Aluno(a)")
             self.btn_add.setIcon(QIcon("assets/images/add_icon_white.png"))
+            self.btn_add.setToolTip("Abre a janela para adicionar novos alunos")
             self.btn_save = QPushButton("  Salvar")
             self.btn_save.setIcon(QIcon("assets/images/save_icon_white.png"))
+            self.btn_save.setToolTip("Salva as alterações no arquivo atual e cria Backups")
 
             self.btn_add.setCursor(Qt.PointingHandCursor)
             self.btn_save.setCursor(Qt.PointingHandCursor)
@@ -105,10 +107,12 @@ class MainWindow(QMainWindow, CenterWindowMixin):
             self.search_field = QLineEdit()
             self.search_field.setObjectName("search_field")
             self.search_field.setPlaceholderText("Buscar por nome ou RM...")
+            self.search_field.setToolTip("Digite parte do nome ou RM e pressione Enter ou clique na lupa para pesquisar")
 
             self.search_btn = QPushButton()
             self.search_btn.setIcon(QIcon("assets/images/lupa_icon_white.png"))
             self.search_btn.setObjectName("search_btn")
+            self.search_btn.setToolTip("Executar busca")
             self.search_btn.setCursor(Qt.PointingHandCursor)
 
             search_layout.addWidget(self.search_field)
@@ -120,7 +124,7 @@ class MainWindow(QMainWindow, CenterWindowMixin):
 
             # Table
             self.table = QTableView()
-            self.table_manager = TableManager(self.table)
+            self.table_manager = TableManager(self.table, self.message_handler)
             content_layout.addWidget(self.table)
 
             # Sombras

@@ -1,10 +1,10 @@
 from PyQt5.QtWidgets import QApplication, QHeaderView, QMenu, QAction, QTableView
-from PyQt5.QtCore import Qt, QSortFilterProxyModel
+from PyQt5.QtCore import Qt, QSortFilterProxyModel, QTimer
 from PyQt5.QtGui import QStandardItemModel, QStandardItem, QFont, QColor
-from utils.ui_helpers import CornerSquare
+from utils.ui_helpers import CornerSquare, MESSAGE_SUCCESS
 
 class TableManager:
-    def __init__(self, table_view):
+    def __init__(self, table_view, message_handler=None):
         self.table = table_view
         self.proxy_model = NumericSortProxyModel()
         self.CHUNK_SIZE = 1000
@@ -12,6 +12,7 @@ class TableManager:
         self.is_loading = False
         self.full_data = None
         self.search_active = False
+        self.message_handler = message_handler
 
         self._setup_table()
         self._setup_context_menu()
@@ -172,22 +173,34 @@ class TableManager:
             menu.exec_(self.table.viewport().mapToGlobal(position))
 
     def copy_cell_content(self):
-        """Copia conteúdo da célula selecionada"""
-        selected = self.table.selectedIndexes()
-        if selected:
-            clipboard = QApplication.clipboard()
-            text = selected[0].data(Qt.DisplayRole)
-            clipboard.setText(str(text))
+        """Copia o conteúdo da célula selecionada para a área de transferência.
 
-            # Feedback visual usando o MessageHandler
-            if hasattr(self, 'main_window') and hasattr(self.main_window, 'message_handler'):
-                self.main_window.message_handler.show_message(
-                    "Conteúdo copiado!",
-                    message_type="loading",
-                    timeout=2000  # 2 segundos
-                )
-            return True
-        return False
+        Returns:
+            bool: True se o conteúdo foi copiado, False se nenhuma célula estiver selecionada.
+        """
+        selected = self.table.selectedIndexes()
+        if not selected:
+            return False
+
+        clipboard = QApplication.clipboard()
+        text = selected[0].data(Qt.DisplayRole)
+        clipboard.setText(str(text))
+
+        # Mostra mensagem temporária se o message_handler estiver disponível
+        if hasattr(self, 'message_handler') and self.message_handler:
+            current_message = getattr(self.message_handler, 'current_message', None)
+            self.message_handler.show_message("Conteúdo copiado!", MESSAGE_SUCCESS)
+
+            # Restaura a mensagem anterior após 2 segundos
+            QTimer.singleShot(2000, lambda: self._restore_previous_message(current_message))
+
+        return True
+
+    def _restore_previous_message(self, previous_message):
+        """Restaura a mensagem anterior após o feedback temporário."""
+        if hasattr(self, 'message_handler') and self.message_handler and previous_message:
+            text, message_type = previous_message
+            self.message_handler.show_message(text, message_type)
 
     def clear_selection(self):
         """Limpa a seleção da tabela"""
