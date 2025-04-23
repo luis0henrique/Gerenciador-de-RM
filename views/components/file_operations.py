@@ -43,9 +43,34 @@ class FileOperations:
         if not self._validate_data_to_save():
             return False
 
-        if hasattr(self.main_window, 'current_file') and self.main_window.current_file:
-            return self._save_to_existing_file()
-        return self.save_file_as()
+        try:
+            if hasattr(self.main_window, 'current_file') and self.main_window.current_file:
+                success = self._save_to_existing_file()
+                if success:
+                    # Atualiza a contagem de registros independentemente da mensagem anterior
+                    record_count = len(self.main_window.excel_manager.df)
+
+                    # Verifica se a mensagem anterior era de contagem
+                    if (hasattr(self.main_window, '_previous_message') and
+                        self.main_window._previous_message and
+                        "registros" in self.main_window._previous_message[0]):
+                        # Atualiza apenas o número mantendo o resto da mensagem
+                        prev_text = self.main_window._previous_message[0]
+                        new_text = prev_text.split("Exibindo")[0] + f"Exibindo {record_count} registros"
+                        self.main_window.message_handler.show_message(new_text, "default")
+                    else:
+                        # Comportamento normal para outras mensagens
+                        if hasattr(self.main_window, '_previous_message') and self.main_window._previous_message:
+                            text, message_type = self.main_window._previous_message
+                            self.main_window.message_handler.show_message(text, message_type)
+                        else:
+                            self.main_window.message_handler.show_record_count(record_count)
+                return success
+            return self.save_file_as()
+        except Exception as e:
+            self.main_window.logger.error(f"Erro ao salvar arquivo: {str(e)}")
+            QMessageBox.critical(self.main_window, "Erro", f"Falha ao salvar:\n{str(e)}")
+            return False
 
     def save_file_as(self):
         """Salva como novo arquivo"""
@@ -121,6 +146,7 @@ class FileOperations:
             self.main_window.message_handler.show_error("Erro ao processar arquivo. Veja o log.")
         finally:
             self._restore_ui_after_loading()
+            self.main_window.btn_del.setEnabled(success)
 
     def _handle_successful_load(self, file_path):
         """Atualiza UI após carregamento bem-sucedido"""

@@ -212,6 +212,47 @@ class TableManager:
         nome_width = max(200, total_width - rm_width)
         self.table.setColumnWidth(0, nome_width)
 
+    def get_selected_rows_data(self):
+        """Obtém os dados das linhas selecionadas como uma lista de dicionários"""
+        selected_rows = set()
+        for index in self.table.selectedIndexes():
+            selected_rows.add(index.row())
+
+        data = []
+        model = self.proxy_model.sourceModel()
+        for row in selected_rows:
+            nome = model.item(row, 0).text()
+            rm = model.item(row, 1).data(Qt.UserRole)
+            data.append({'Nome do(a) Aluno(a)': nome, 'RM': rm})
+
+        return data
+
+    def remove_selected_rows(self, excel_manager, data_manager, message_handler):
+        """Remove as linhas selecionadas e retorna True se bem sucedido"""
+        selected_data = self.get_selected_rows_data()
+
+        if not selected_data:
+            message_handler.show_message("Nenhuma linha selecionada para exclusão", "warning")
+            return False
+
+        # Remove do DataFrame
+        if not data_manager.remover_alunos(selected_data):
+            message_handler.show_message("Erro ao remover alunos", "error")
+            return False
+
+        # Atualiza a tabela com os dados atualizados
+        self.update_table(excel_manager.df)
+
+        # Mostra mensagem de confirmação
+        rows_removed = len(selected_data)
+        plural = "s" if rows_removed > 1 else ""
+        message_handler.show_message(
+            f"{rows_removed} aluno{plural} removido{plural} (clique em Salvar para confirmar)",
+            "warning"
+        )
+
+        return True
+
 class NumericSortProxyModel(QSortFilterProxyModel):
     def lessThan(self, left, right):
         if left.column() == 1:

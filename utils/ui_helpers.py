@@ -83,6 +83,10 @@ class MessageHandler:
         """Mostra mensagem de sucesso."""
         self.show_message(message, MESSAGE_SUCCESS)
 
+    def show_success(self, message: str):
+        """Mostra mensagem de aviso."""
+        self.show_message(message, MESSAGE_WARNING)
+
     def show_search_results(self, count: int, by_rm: bool = False):
         """Mostra resultados de busca."""
         search_type = "RM" if by_rm else "nome"

@@ -91,7 +91,7 @@ QPushButton:disabled {
     color: white;
     min-width: 10px;
     max-width: 10px;
-    max-height: 20px;
+    max-height: 25px;
     border: 1px solid #2c2c2c;
     margin-left: 0;
 }
@@ -329,6 +329,12 @@ QStatusBar {
     background-color: #2e7d32;
     color: #e8f5e9;
     border: 1px solid #1b5e20;
+}
+
+#messageLabel.warning {
+    background-color: #7d2e2e;
+    color: #f5e8e8;
+    border: 1px solid #5e1b1b;
 }
 
 /* ===== PROGRESS BAR ===== */

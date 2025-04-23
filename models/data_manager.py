@@ -144,3 +144,30 @@ class DataManager:
             'duplicatas': duplicatas,
             'alunos_validos': alunos_validos
         }
+
+    def remover_alunos(self, alunos):
+        """Remove alunos com base em uma lista de dicionários contendo RM e Nome"""
+        if not hasattr(self.excel_manager, 'df') or self.excel_manager.df.empty:
+            return False
+
+        try:
+            # Cria um conjunto de RMs para remoção
+            rms_para_remover = {aluno['RM'] for aluno in alunos}
+
+            # Calcula o tamanho original para verificar se a remoção ocorreu
+            original_size = len(self.excel_manager.df)
+
+            # Filtra o DataFrame mantendo apenas os alunos que NÃO estão na lista de remoção
+            self.excel_manager.df = self.excel_manager.df[~self.excel_manager.df['RM'].isin(rms_para_remover)]
+
+            # Verifica se realmente removeu algo
+            if len(self.excel_manager.df) == original_size:
+                return False
+
+            # Atualiza os índices
+            self._build_indexes()
+
+            return True
+        except Exception as e:
+            print(f"Erro ao remover alunos: {e}")
+            return False

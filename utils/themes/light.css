@@ -37,7 +37,6 @@ QLineEdit:focus, QTextEdit:focus, QPlainTextEdit:focus {
     padding: 6px;
     margin-right: 0;
     border-radius: 0;
-    max-height: 20px;
 }
 
 #search_field:hover {
@@ -93,7 +92,7 @@ QPushButton:disabled {
     color: white;
     min-width: 10px;
     max-width: 10px;
-    max-height: 20px;
+    max-height: 25px;
     border: 1px solid #2ca1d8;
     margin-left: 0;
 }
@@ -325,6 +324,12 @@ QStatusBar {
     background-color: #e8f5e9;
     color: #1b5e20;
     border: 1px solid #c8e6c9;
+}
+
+#messageLabel.warning {
+    background-color: #f5e8e8;
+    color: #5e1b1b;
+    border: 1px solid #e6c8c8;
 }
 
 /* ===== PROGRESS BAR ===== */

@@ -6,6 +6,7 @@ from PyQt5.QtWidgets import (
 )
 from PyQt5.QtCore import Qt, QSize
 from PyQt5.QtGui import QIcon
+from models.data_manager import DataManager
 from models.excel_manager import ExcelManager
 from models.search_manager import SearchManager
 from utils.styles import apply_theme, load_theme_preference
@@ -23,6 +24,7 @@ class MainWindow(QMainWindow, CenterWindowMixin):
 
         self.current_theme = 'light'
         self.excel_manager = ExcelManager()
+        self.data_manager = DataManager(self.excel_manager)
         self.current_file = None
 
         try:
@@ -88,13 +90,16 @@ class MainWindow(QMainWindow, CenterWindowMixin):
             self.btn_save = QPushButton("  Salvar")
             self.btn_save.setIcon(QIcon("assets/images/save_icon_white.png"))
             self.btn_save.setToolTip("Salva as alterações no arquivo atual e cria Backups")
-
+            self.btn_del = QPushButton("  Excluir")
+            self.btn_del.setIcon(QIcon("assets/images/del_icon_white.png"))
             self.btn_add.setCursor(Qt.PointingHandCursor)
             self.btn_save.setCursor(Qt.PointingHandCursor)
             self.btn_add.setEnabled(False)
             self.btn_save.setEnabled(False)
+            self.btn_del.setEnabled(False)
 
             toolbar.addWidget(self.btn_add)
+            toolbar.addWidget(self.btn_del)
             toolbar.addWidget(self.btn_save)
             toolbar.addStretch()
             content_layout.addLayout(toolbar)
@@ -131,6 +136,7 @@ class MainWindow(QMainWindow, CenterWindowMixin):
             self.elements_with_shadow = [
                 self.btn_add,
                 self.btn_save,
+                self.btn_del,
                 self.search_btn,
                 self.search_field,
                 self.table,
@@ -178,6 +184,7 @@ class MainWindow(QMainWindow, CenterWindowMixin):
         try:
             self.btn_add.clicked.connect(self.window_manager.open_add_aluno_window)
             self.btn_save.clicked.connect(self.file_ops.save_file)
+            self.btn_del.clicked.connect(self._handle_delete_action)
 
             self.search_btn.clicked.connect(lambda: self.search_manager.search_student(self.search_field.text()))
             self.search_field.returnPressed.connect(lambda: self.search_manager.search_student(self.search_field.text()))
@@ -210,6 +217,7 @@ class MainWindow(QMainWindow, CenterWindowMixin):
         elements_with_shadow = [
             self.btn_add,
             self.btn_save,
+            self.btn_del,
             self.search_btn,
             self.search_field,
             self.table,
@@ -240,11 +248,22 @@ class MainWindow(QMainWindow, CenterWindowMixin):
         has_data = hasattr(self.excel_manager, 'df') and not self.excel_manager.df.empty
         self.btn_add.setEnabled(has_data)
         self.btn_save.setEnabled(has_data)
+        self.btn_del.setEnabled(has_data)
 
     def _handle_search_change(self, text):
         """Reage a mudanças no campo de busca"""
         if not text.strip():
             self.search_manager.restore_full_list()
+
+    def _handle_delete_action(self):
+        """Manipula a ação de exclusão de alunos"""
+        if hasattr(self, 'table_manager') and hasattr(self, 'excel_manager') and hasattr(self, 'data_manager'):
+            # Armazena a mensagem atual para restaurar depois
+            self._previous_message = getattr(self.message_handler, 'current_message', None)
+
+            if self.table_manager.remove_selected_rows(self.excel_manager, self.data_manager, self.message_handler):
+                # Habilita o botão de salvar para refletir que há mudanças não salvas
+                self.btn_save.setEnabled(True)
 
     def _init_resources_dir(self):
         """Garante que o diretório de recursos existe para carregar e salvar os arquivos"""
