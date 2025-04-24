@@ -1,6 +1,6 @@
 from PyQt5.QtWidgets import (QGraphicsDropShadowEffect, QLabel, QHBoxLayout,
                              QVBoxLayout, QWidget, QTableWidget, QApplication)
-from PyQt5.QtCore import Qt
+from PyQt5.QtCore import Qt, QTimer
 from PyQt5.QtGui import QColor
 from typing import Optional, Union
 from utils.styles import get_shadow_color
@@ -33,9 +33,12 @@ class MessageHandler:
         self.layout = layout
         self.message_widget: Optional[QWidget] = None
         self.message_label: Optional[QLabel] = None
-        self.current_message: Optional[str] = None
+        self.current_message: Optional[tuple] = None
+        self.default_message: Optional[tuple] = None  # Nova propriedade para mensagem padrão
+        self.timer = QTimer()
+        self.timer.setSingleShot(True)
+        self.timer.timeout.connect(self._restore_default_message)  # Alterado para restaurar padrão
 
-        # Inicializa o widget imediatamente
         self.init_message_widget()
         self.show_message("Pronto para carregar dados", MESSAGE_DEFAULT)
 
@@ -71,6 +74,30 @@ class MessageHandler:
         self.message_label.style().polish(self.message_label)
         self.message_widget.setVisible(True)
 
+    def set_default_message(self, text: str, message_type: str = MESSAGE_DEFAULT):
+        """Define a mensagem padrão que será restaurada após mensagens temporárias."""
+        self.default_message = (text, message_type)
+        # Se não há mensagem temporária ativa, atualiza imediatamente
+        if not self.timer.isActive():
+            self.show_message(text, message_type)
+
+    def show_temporary_message(self, text: str, message_type: str = MESSAGE_DEFAULT, duration: int = 2000):
+        """Mostra uma mensagem temporária e depois restaura a mensagem padrão."""
+        if self.message_widget is None:
+            self.init_message_widget()
+
+        # Mostra a nova mensagem
+        self.show_message(text, message_type)
+
+        # Configura o timer para restaurar a mensagem padrão
+        self.timer.start(duration)
+
+    def _restore_default_message(self):
+        """Restaura a mensagem padrão após o término do temporizador."""
+        if self.default_message:
+            text, message_type = self.default_message
+            self.show_message(text, message_type)
+
     def show_loading(self):
         """Mostra mensagem de carregamento."""
         self.show_message("Carregando...", MESSAGE_LOADING)
@@ -83,7 +110,7 @@ class MessageHandler:
         """Mostra mensagem de sucesso."""
         self.show_message(message, MESSAGE_SUCCESS)
 
-    def show_success(self, message: str):
+    def show_warning(self, message: str):
         """Mostra mensagem de aviso."""
         self.show_message(message, MESSAGE_WARNING)
 

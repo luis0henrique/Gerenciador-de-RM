@@ -60,7 +60,7 @@ class DataManager:
             self.nome_index[token].append((len(self.excel_manager.df)-1, nome_normalizado))
         self.rm_set.add(rm)
 
-        return True
+        return {'Nome do(a) Aluno(a)': nome_formatado, 'RM': rm}
 
     def nome_similar_existe(self, nome_novo: str, threshold: float = 0.8) -> Dict[str, Any]:
         """Busca por nomes similares com índice otimizado"""

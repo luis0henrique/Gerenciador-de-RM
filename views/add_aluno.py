@@ -1,22 +1,24 @@
-import pandas as pd
 from PyQt5.QtWidgets import (
     QDialog, QVBoxLayout, QHBoxLayout, QTableWidget,
     QPushButton, QLabel, QMessageBox, QHeaderView,
-    QSizePolicy, QWidget
+    QSizePolicy, QWidget, QApplication
 )
 from PyQt5.QtCore import Qt, pyqtSignal
 from utils.ui_helpers import CenterWindowMixin, add_shadow, update_shadows_on_theme_change, TableNavigationMixin, CornerSquare
 from utils.helpers import formatar_nome
 from utils.styles import get_current_stylesheet
 from views.components.dialogs import AlunoDialogs
+from models.command_manager import AddStudentCommand
 
 class AddAlunoWindow(QDialog, CenterWindowMixin, TableNavigationMixin):
     aluno_adicionado_signal = pyqtSignal()
 
-    def __init__(self, parent=None, data_manager=None):
+    def __init__(self, parent=None, data_manager=None, excel_manager=None, command_manager=None):
         super().__init__(parent)
         self._init_window_config()
         self.data_manager = data_manager
+        self.excel_manager = excel_manager
+        self.command_manager = command_manager
         self._init_ui()
         self._connect_signals()
         self.center_window()
@@ -198,22 +200,34 @@ class AddAlunoWindow(QDialog, CenterWindowMixin, TableNavigationMixin):
         return alunos
 
     def _adicionar_alunos(self, alunos_validos):
-        """Adiciona alunos a database"""
+        """Adiciona alunos a database de forma assíncrona"""
         try:
-            novos_dados = pd.DataFrame(
-                [(nome, rm) for nome, rm in alunos_validos],
-                columns=['Nome do(a) Aluno(a)', 'RM']
-            )
-            self.data_manager.excel_manager.df = pd.concat(
-                [self.data_manager.excel_manager.df, novos_dados],
-                ignore_index=True
-            ).sort_values('RM')
+            # Desabilita o botão durante a operação
+            self.btn_add_alunos.setEnabled(False)
+            self.btn_add_alunos.setText("Adicionando...")
 
+            # Para cada aluno, cria e executa um comando
+            for nome, rm in alunos_validos:
+                student_data = {'Nome do(a) Aluno(a)': nome, 'RM': int(rm)}
+                add_command = AddStudentCommand(
+                    self.excel_manager,
+                    self.data_manager,
+                    student_data
+                )
+
+                # Executa sincronamente para garantir ordem (ou mantém assíncrono se preferir)
+                if self.command_manager.execute_command(add_command):
+                    # Pequeno delay entre adições (opcional)
+                    QApplication.processEvents()
+
+            # Mostra mensagem de sucesso
             QMessageBox.information(
                 self,
                 "Sucesso",
-                f"{len(alunos_validos)} aluno(a)(s) adicionado(a)(s) com sucesso!"
+                f"{len(alunos_validos)} aluno(s) adicionado(s) com sucesso!"
             )
+
+            # Emite sinal e fecha a janela
             self.aluno_adicionado_signal.emit()
             self.close()
 
@@ -221,5 +235,9 @@ class AddAlunoWindow(QDialog, CenterWindowMixin, TableNavigationMixin):
             QMessageBox.critical(
                 self,
                 "Erro",
-                f"Falha ao adicionar alunos(as):\n{str(e)}"
+                f"Falha ao adicionar aluno(s):\n{str(e)}"
             )
+        finally:
+            # Restaura o botão
+            self.btn_add_alunos.setEnabled(True)
+            self.btn_add_alunos.setText("Adicionar Aluno(s)")

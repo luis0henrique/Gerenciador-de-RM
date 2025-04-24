@@ -1,5 +1,5 @@
 from PyQt5.QtWidgets import QApplication, QHeaderView, QMenu, QAction, QTableView
-from PyQt5.QtCore import Qt, QSortFilterProxyModel, QTimer
+from PyQt5.QtCore import Qt, QSortFilterProxyModel
 from PyQt5.QtGui import QStandardItemModel, QStandardItem, QFont, QColor
 from utils.ui_helpers import CornerSquare, MESSAGE_SUCCESS
 
@@ -188,19 +188,9 @@ class TableManager:
 
         # Mostra mensagem temporária se o message_handler estiver disponível
         if hasattr(self, 'message_handler') and self.message_handler:
-            current_message = getattr(self.message_handler, 'current_message', None)
-            self.message_handler.show_message("Conteúdo copiado!", MESSAGE_SUCCESS)
-
-            # Restaura a mensagem anterior após 2 segundos
-            QTimer.singleShot(2000, lambda: self._restore_previous_message(current_message))
+            self.message_handler.show_temporary_message("Conteúdo copiado!", MESSAGE_SUCCESS)
 
         return True
-
-    def _restore_previous_message(self, previous_message):
-        """Restaura a mensagem anterior após o feedback temporário."""
-        if hasattr(self, 'message_handler') and self.message_handler and previous_message:
-            text, message_type = previous_message
-            self.message_handler.show_message(text, message_type)
 
     def clear_selection(self):
         """Limpa a seleção da tabela"""

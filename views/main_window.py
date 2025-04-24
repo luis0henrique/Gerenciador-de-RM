@@ -6,11 +6,12 @@ from PyQt5.QtWidgets import (
 )
 from PyQt5.QtCore import Qt, QSize
 from PyQt5.QtGui import QIcon
+from models.command_manager import CommandManager, RemoveStudentsCommand
 from models.data_manager import DataManager
 from models.excel_manager import ExcelManager
 from models.search_manager import SearchManager
 from utils.styles import apply_theme, load_theme_preference
-from utils.ui_helpers import CenterWindowMixin, add_shadow, MessageHandler, update_shadows_on_theme_change
+from utils.ui_helpers import CenterWindowMixin, add_shadow, MessageHandler, update_shadows_on_theme_change, MESSAGE_DEFAULT
 from views.window_manager import WindowManager
 from views.components.menu import MenuManager
 from views.components.table import TableManager
@@ -23,6 +24,9 @@ class MainWindow(QMainWindow, CenterWindowMixin):
         self.logger.info("Inicializando MainWindow...")
 
         self.current_theme = 'light'
+        self.command_manager = CommandManager()
+        self.command_manager.operation_started.connect(self._handle_operation_start)
+        self.command_manager.operation_finished.connect(self._handle_operation_finish)
         self.excel_manager = ExcelManager()
         self.data_manager = DataManager(self.excel_manager)
         self.current_file = None
@@ -87,19 +91,39 @@ class MainWindow(QMainWindow, CenterWindowMixin):
             self.btn_add = QPushButton(" Adicionar Aluno(a)")
             self.btn_add.setIcon(QIcon("assets/images/add_icon_white.png"))
             self.btn_add.setToolTip("Abre a janela para adicionar novos alunos")
+
+            self.btn_undo = QPushButton(" Desfazer")
+            self.btn_undo.setIcon(QIcon("assets/images/undo_icon_white.png"))
+            self.btn_undo.setToolTip("Desfazer a última ação (Ctrl+Z)")
+
+            self.btn_redo = QPushButton(" Refazer")
+            self.btn_redo.setIcon(QIcon("assets/images/redo_icon_white.png"))
+            self.btn_redo.setToolTip("Refazer a última ação desfeita (Ctrl+Y)")
+
+            self.btn_del = QPushButton("  Excluir")
+            self.btn_del.setIcon(QIcon("assets/images/del_icon_white.png"))
+            self.btn_del.setToolTip("Excluir alunos selecionados")
+
             self.btn_save = QPushButton("  Salvar")
             self.btn_save.setIcon(QIcon("assets/images/save_icon_white.png"))
             self.btn_save.setToolTip("Salva as alterações no arquivo atual e cria Backups")
-            self.btn_del = QPushButton("  Excluir")
-            self.btn_del.setIcon(QIcon("assets/images/del_icon_white.png"))
-            self.btn_add.setCursor(Qt.PointingHandCursor)
-            self.btn_save.setCursor(Qt.PointingHandCursor)
-            self.btn_add.setEnabled(False)
-            self.btn_save.setEnabled(False)
-            self.btn_del.setEnabled(False)
 
+            # Configuração do cursor
+            for btn in [self.btn_add, self.btn_undo, self.btn_redo, self.btn_del, self.btn_save]:
+                btn.setCursor(Qt.PointingHandCursor)
+
+            # Estado inicial
+            self.btn_add.setEnabled(False)
+            self.btn_undo.setEnabled(False)
+            self.btn_redo.setEnabled(False)
+            self.btn_del.setEnabled(False)
+            self.btn_save.setEnabled(False)
+
+            toolbar.addStretch()
             toolbar.addWidget(self.btn_add)
             toolbar.addWidget(self.btn_del)
+            toolbar.addWidget(self.btn_undo)
+            toolbar.addWidget(self.btn_redo)
             toolbar.addWidget(self.btn_save)
             toolbar.addStretch()
             content_layout.addLayout(toolbar)
@@ -183,8 +207,17 @@ class MainWindow(QMainWindow, CenterWindowMixin):
         self.logger.debug("Conectando sinais...")
         try:
             self.btn_add.clicked.connect(self.window_manager.open_add_aluno_window)
-            self.btn_save.clicked.connect(self.file_ops.save_file)
             self.btn_del.clicked.connect(self._handle_delete_action)
+            self.btn_undo.clicked.connect(self._handle_undo_action)
+            self.btn_redo.clicked.connect(self._handle_redo_action)
+            self.btn_save.clicked.connect(self.file_ops.save_file)
+
+            # Atalhos de teclado
+            self.btn_add.setShortcut("Ctrl+A")
+            self.btn_del.setShortcut("Delete")
+            self.btn_undo.setShortcut("Ctrl+Z")
+            self.btn_redo.setShortcut("Ctrl+Y")
+            self.btn_redo.setShortcut("Ctrl+S")
 
             self.search_btn.clicked.connect(lambda: self.search_manager.search_student(self.search_field.text()))
             self.search_field.returnPressed.connect(lambda: self.search_manager.search_student(self.search_field.text()))
@@ -235,6 +268,11 @@ class MainWindow(QMainWindow, CenterWindowMixin):
         self.table_manager.update_table(data)
         self._update_buttons_state()
 
+        # Atualiza a mensagem padrão com a contagem atual de registros
+        if hasattr(self.excel_manager, 'df'):
+            count = len(self.excel_manager.df)
+            self.message_handler.set_default_message(f"Exibindo {count} registros", MESSAGE_DEFAULT)
+
     def _update_table_with_data(self, data):
         self.table_manager.update_table_with_data(data)
 
@@ -249,6 +287,8 @@ class MainWindow(QMainWindow, CenterWindowMixin):
         self.btn_add.setEnabled(has_data)
         self.btn_save.setEnabled(has_data)
         self.btn_del.setEnabled(has_data)
+        self.btn_undo.setEnabled(len(self.command_manager.undo_stack) > 0)
+        self.btn_redo.setEnabled(len(self.command_manager.redo_stack) > 0)
 
     def _handle_search_change(self, text):
         """Reage a mudanças no campo de busca"""
@@ -256,14 +296,49 @@ class MainWindow(QMainWindow, CenterWindowMixin):
             self.search_manager.restore_full_list()
 
     def _handle_delete_action(self):
-        """Manipula a ação de exclusão de alunos"""
-        if hasattr(self, 'table_manager') and hasattr(self, 'excel_manager') and hasattr(self, 'data_manager'):
-            # Armazena a mensagem atual para restaurar depois
-            self._previous_message = getattr(self.message_handler, 'current_message', None)
+        """Manipula a ação de exclusão de alunos de forma assíncrona"""
+        if not hasattr(self, 'table_manager') or not self.table.selectedIndexes():
+            self.message_handler.show_message("Nenhuma linha selecionada para exclusão", "warning")
+            return
 
-            if self.table_manager.remove_selected_rows(self.excel_manager, self.data_manager, self.message_handler):
-                # Habilita o botão de salvar para refletir que há mudanças não salvas
-                self.btn_save.setEnabled(True)
+        selected_data = self.table_manager.get_selected_rows_data()
+        remove_command = RemoveStudentsCommand(
+            self.excel_manager,
+            self.data_manager,
+            selected_data
+        )
+        self.command_manager.execute_command(remove_command)
+
+    def _handle_undo_action(self):
+        """Manipula a ação de desfazer de forma assíncrona"""
+        self.command_manager.undo()
+
+    def _handle_redo_action(self):
+        """Manipula a ação de refazer de forma assíncrona"""
+        self.command_manager.redo()
+
+    def _handle_operation_start(self, message):
+        """Mostra mensagem quando uma operação começa"""
+        self.message_handler.show_message(message, "loading")
+        self._set_ui_enabled(False)  # Desabilita UI durante operação
+
+    def _handle_operation_finish(self, success, message):
+        """Lida com o fim de uma operação"""
+        self._set_ui_enabled(True)
+        if success:
+            self._update_table()
+            self.message_handler.show_temporary_message(message, "success")
+        else:
+            self.message_handler.show_message(message, "error")
+
+    def _set_ui_enabled(self, enabled):
+        """Habilita/desabilita controles da UI"""
+        self.btn_add.setEnabled(enabled)
+        self.btn_undo.setEnabled(enabled and len(self.command_manager.undo_stack) > 0)
+        self.btn_redo.setEnabled(enabled and len(self.command_manager.redo_stack) > 0)
+        self.btn_del.setEnabled(enabled)
+        self.btn_save.setEnabled(enabled)
+        self.table.setEnabled(enabled)
 
     def _init_resources_dir(self):
         """Garante que o diretório de recursos existe para carregar e salvar os arquivos"""
@@ -272,9 +347,10 @@ class MainWindow(QMainWindow, CenterWindowMixin):
     def resizeEvent(self, event):
         """Ajusta layout ao redimensionar"""
         super().resizeEvent(event)
-        content_width = min(self.width(), self.MAX_CONTENT_WIDTH)
-        self.content_widget.setFixedWidth(content_width)
-        self.table_manager.resize_columns()
+        if event.oldSize().width() != event.size().width():
+            content_width = min(self.width(), self.MAX_CONTENT_WIDTH)
+            self.content_widget.setFixedWidth(content_width)
+            self.table_manager.resize_columns()
 
     def eventFilter(self, obj, event):
         """Filtra eventos para desselecionar a tabela quando clicar fora"""

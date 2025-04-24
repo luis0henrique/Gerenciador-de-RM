@@ -29,14 +29,25 @@ class WindowManager:
             raise RuntimeError("Excel não carregado")
 
     def _setup_add_aluno_window(self, data_manager):
-        """Configura e exibe a janela"""
+        """Configura e exibe a janela com todas as dependências necessárias"""
         self.add_aluno_window = AddAlunoWindow(
             parent=self.main_window,
-            data_manager=data_manager
+            data_manager=data_manager,
+            excel_manager=self.main_window.excel_manager,
+            command_manager=self.main_window.command_manager
         )
+
+        # Conecta todos os sinais necessários
         self.add_aluno_window.aluno_adicionado_signal.connect(
             self.main_window.search_manager.restore_full_list
         )
+        self.add_aluno_window.aluno_adicionado_signal.connect(
+            self.main_window._update_table
+        )
+        self.add_aluno_window.aluno_adicionado_signal.connect(
+            lambda: self.main_window.btn_save.setEnabled(True)
+        )
+
         self.add_aluno_window.exec_()
 
     def _handle_window_error(self, error):

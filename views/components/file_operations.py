@@ -150,6 +150,8 @@ class FileOperations:
 
     def _handle_successful_load(self, file_path):
         """Atualiza UI após carregamento bem-sucedido"""
+        if hasattr(self.main_window, 'command_manager'):
+            self.main_window.command_manager.clear()
         self.main_window.current_file = file_path
         self.main_window._update_table()
 
