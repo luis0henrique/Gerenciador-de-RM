@@ -1,5 +1,5 @@
 /* ===== ROOT ELEMENTS ===== */
-QMainWindow, QDialog {
+.MainBackgroundWindow {
     background-image: url(assets/images/background_dark.png);
     background-repeat: no-repeat;
     background-attachment: fixed;
@@ -187,6 +187,7 @@ QTableView::item:selected {
 
 QTableView:disabled {
     background-color: #1c1c1c;
+	alternate-background-color: #1c1c1c;
     color: #7d7d7d;
     border: 1px solid #242424;
 }

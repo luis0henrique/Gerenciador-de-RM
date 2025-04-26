@@ -1,5 +1,5 @@
 /* ===== ROOT ELEMENTS ===== */
-QMainWindow, QDialog {
+.MainBackgroundWindow {
     background-image: url(assets/images/background_light.png);
     background-repeat: no-repeat;
     background-attachment: fixed;
@@ -35,7 +35,6 @@ QLineEdit:focus, QTextEdit:focus, QPlainTextEdit:focus {
     background-color: #ffffff;
     border: 1px solid #bdbdbd;
     padding: 6px;
-    margin-right: 0;
     border-radius: 0;
 }
 
@@ -94,7 +93,6 @@ QPushButton:disabled {
     max-width: 10px;
     max-height: 25px;
     border: 1px solid #2ca1d8;
-    margin-left: 0;
 }
 
 #search_btn:hover {

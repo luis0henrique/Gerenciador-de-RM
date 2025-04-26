@@ -22,7 +22,7 @@ class MainWindow(QMainWindow, CenterWindowMixin):
         super().__init__()
         self.logger = logging.getLogger(__name__)
         self.logger.info("Inicializando MainWindow...")
-
+        self.setProperty("class", "MainBackgroundWindow")
         self.current_theme = 'light'
         self.command_manager = CommandManager()
         self.command_manager.operation_started.connect(self._handle_operation_start)
@@ -88,9 +88,11 @@ class MainWindow(QMainWindow, CenterWindowMixin):
 
             # Toolbar
             toolbar = QHBoxLayout()
-            self.btn_add = QPushButton(" Adicionar Aluno(a)")
+            toolbar.setSpacing(15)  # Define o espaçamento entre os widgets
+            toolbar.setContentsMargins(0, 4, 0, 4)  # Margens (esquerda, topo, direita, baixo)
+            self.btn_add = QPushButton(" Adicionar")
             self.btn_add.setIcon(QIcon("assets/images/add_icon_white.png"))
-            self.btn_add.setToolTip("Abre a janela para adicionar novos alunos")
+            self.btn_add.setToolTip("Abre a janela para adicionar novos alunos (Ctrl+A)")
 
             self.btn_undo = QPushButton(" Desfazer")
             self.btn_undo.setIcon(QIcon("assets/images/undo_icon_white.png"))
@@ -102,11 +104,11 @@ class MainWindow(QMainWindow, CenterWindowMixin):
 
             self.btn_del = QPushButton("  Excluir")
             self.btn_del.setIcon(QIcon("assets/images/del_icon_white.png"))
-            self.btn_del.setToolTip("Excluir alunos selecionados")
+            self.btn_del.setToolTip("Excluir alunos selecionados (Delete))")
 
             self.btn_save = QPushButton("  Salvar")
             self.btn_save.setIcon(QIcon("assets/images/save_icon_white.png"))
-            self.btn_save.setToolTip("Salva as alterações no arquivo atual e cria Backups")
+            self.btn_save.setToolTip("Salva as alterações no arquivo e cria Backups (Crtl+S)")
 
             # Configuração do cursor
             for btn in [self.btn_add, self.btn_undo, self.btn_redo, self.btn_del, self.btn_save]:
@@ -159,8 +161,10 @@ class MainWindow(QMainWindow, CenterWindowMixin):
             # Sombras
             self.elements_with_shadow = [
                 self.btn_add,
-                self.btn_save,
                 self.btn_del,
+                self.btn_undo,
+                self.btn_redo,
+                self.btn_save,
                 self.search_btn,
                 self.search_field,
                 self.table,
@@ -249,8 +253,10 @@ class MainWindow(QMainWindow, CenterWindowMixin):
         """Atualiza elementos da UI quando o tema muda."""
         elements_with_shadow = [
             self.btn_add,
-            self.btn_save,
             self.btn_del,
+            self.btn_undo,
+            self.btn_redo,
+            self.btn_save,
             self.search_btn,
             self.search_field,
             self.table,

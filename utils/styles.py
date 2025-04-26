@@ -42,7 +42,6 @@ def get_current_stylesheet() -> str:
     """Retorna a folha de estilo do tema atual."""
     return _read_css_file(load_theme_preference())
 
-# Adicione estas funções ao final do arquivo styles.py (ou no local apropriado)
 def get_stylesheet() -> str:
     """Retorna a folha de estilo do tema claro (para compatibilidade)."""
     return _read_css_file("light")

@@ -15,6 +15,7 @@ class AddAlunoWindow(QDialog, CenterWindowMixin, TableNavigationMixin):
 
     def __init__(self, parent=None, data_manager=None, excel_manager=None, command_manager=None):
         super().__init__(parent)
+        self.setProperty("class", "MainBackgroundWindow")
         self._init_window_config()
         self.data_manager = data_manager
         self.excel_manager = excel_manager
