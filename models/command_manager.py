@@ -156,3 +156,25 @@ class RemoveStudentsCommand(Command):
         ).sort_values('RM', ascending=False)
         self.data_manager._build_indexes()
         return True
+
+class EditStudentCommand(Command):
+    def __init__(self, excel_manager, data_manager, row, col, old_value, new_value):
+        self.excel_manager = excel_manager
+        self.data_manager = data_manager
+        self.row = row
+        self.col = col
+        self.old_value = old_value
+        self.new_value = new_value
+
+    def execute(self):
+        df = self.excel_manager.df
+        col_name = df.columns[self.col]
+        df.iat[self.row, self.col] = self.new_value
+        self.data_manager._build_indexes()
+        return True
+
+    def undo(self):
+        df = self.excel_manager.df
+        df.iat[self.row, self.col] = self.old_value
+        self.data_manager._build_indexes()
+        return True

@@ -14,6 +14,13 @@ class TableManager:
         self.search_active = False
         self.message_handler = message_handler
 
+        self.model = QStandardItemModel()
+        self.model.setHorizontalHeaderLabels(["Nome do(a) Aluno(a)", "RM"])
+        self.proxy_model.setSourceModel(self.model)
+        self.table.setModel(self.proxy_model)
+        # Permite edição
+        self.model.itemChanged.connect(self._on_item_changed)
+
         self._setup_table()
         self._setup_context_menu()
         self._setup_scroll_connection()
@@ -76,12 +83,22 @@ class TableManager:
         self.current_chunk = 0
         self.search_active = False
 
+        # Desconecta o sinal para evitar loops
+        try:
+            self.model.itemChanged.disconnect()
+        except Exception:
+            pass
+
         model = QStandardItemModel()
         model.setHorizontalHeaderLabels(["Nome do(a) Aluno(a)", "RM"])
         self.proxy_model.setSourceModel(model)
+        self.model = model
 
         self._load_data_chunk()
         self.table.sortByColumn(sort_column, sort_order)
+
+        # Reconecta o sinal
+        self.model.itemChanged.connect(self._on_item_changed)
 
     def update_table_with_data(self, data):
         model = QStandardItemModel()
@@ -242,6 +259,15 @@ class TableManager:
         )
 
         return True
+
+    def _on_item_changed(self, item):
+        if hasattr(self, 'on_edit_callback'):
+            row = item.row()
+            col = item.column()
+            value = item.text()
+            # Pegue o RM da linha editada (sempre coluna 1)
+            rm = self.model.item(row, 1).data(Qt.UserRole)
+            self.on_edit_callback(row, col, value, rm)
 
 class NumericSortProxyModel(QSortFilterProxyModel):
     def lessThan(self, left, right):

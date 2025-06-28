@@ -201,34 +201,21 @@ class AddAlunoWindow(QDialog, CenterWindowMixin, TableNavigationMixin):
         return alunos
 
     def _adicionar_alunos(self, alunos_validos):
-        """Adiciona alunos a database de forma assíncrona"""
+        """Adiciona alunos ao banco de dados de forma síncrona"""
         try:
-            # Desabilita o botão durante a operação
             self.btn_add_alunos.setEnabled(False)
             self.btn_add_alunos.setText("Adicionando...")
 
-            # Para cada aluno, cria e executa um comando
             for nome, rm in alunos_validos:
-                student_data = {'Nome do(a) Aluno(a)': nome, 'RM': int(rm)}
-                add_command = AddStudentCommand(
-                    self.excel_manager,
-                    self.data_manager,
-                    student_data
-                )
+                self.data_manager.adicionar_aluno(nome, int(rm))
+                QApplication.processEvents()
 
-                # Executa sincronamente para garantir ordem (ou mantém assíncrono se preferir)
-                if self.command_manager.execute_command(add_command):
-                    # Pequeno delay entre adições (opcional)
-                    QApplication.processEvents()
-
-            # Mostra mensagem de sucesso
             QMessageBox.information(
                 self,
                 "Sucesso",
                 f"{len(alunos_validos)} aluno(s) adicionado(s) com sucesso!"
             )
 
-            # Emite sinal e fecha a janela
             self.aluno_adicionado_signal.emit()
             self.close()
 
@@ -239,6 +226,5 @@ class AddAlunoWindow(QDialog, CenterWindowMixin, TableNavigationMixin):
                 f"Falha ao adicionar aluno(s):\n{str(e)}"
             )
         finally:
-            # Restaura o botão
             self.btn_add_alunos.setEnabled(True)
             self.btn_add_alunos.setText("Adicionar Aluno(s)")

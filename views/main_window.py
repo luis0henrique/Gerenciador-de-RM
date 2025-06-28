@@ -2,11 +2,11 @@ import os
 import logging
 from PyQt5.QtWidgets import (
     QApplication, QMainWindow, QWidget, QVBoxLayout, QHBoxLayout,
-    QPushButton, QTableView, QLineEdit, QProgressBar
+    QPushButton, QTableView, QLineEdit, QProgressBar, QMessageBox
 )
 from PyQt5.QtCore import Qt, QSize
 from PyQt5.QtGui import QIcon
-from models.command_manager import CommandManager, RemoveStudentsCommand
+from models.command_manager import CommandManager, RemoveStudentsCommand, EditStudentCommand
 from models.data_manager import DataManager
 from models.excel_manager import ExcelManager
 from models.search_manager import SearchManager
@@ -203,6 +203,9 @@ class MainWindow(QMainWindow, CenterWindowMixin):
             self.center_window()
             self.logger.info("UI configurada com sucesso")
 
+            # Connect table edit callback
+            self.table_manager.on_edit_callback = self._handle_table_edit
+
         except Exception as e:
             self.logger.error("Erro na configuração da UI", exc_info=True)
             raise
@@ -365,6 +368,51 @@ class MainWindow(QMainWindow, CenterWindowMixin):
                 self.table_manager.clear_selection()
 
         return super().eventFilter(obj, event)
+
+    def _handle_table_edit(self, row, col, value, rm_antigo):
+        df = self.excel_manager.df
+        # Encontre o índice real no DataFrame pelo RM antigo
+        idxs = df.index[df['RM'] == rm_antigo].tolist()
+        if not idxs:
+            return  # RM não encontrado
+        real_idx = idxs[0]
+        old_value = df.iat[real_idx, col]
+        if str(old_value) == value:
+            return  # Não mudou nada
+
+        # Se for edição do RM (col == 1)
+        if col == 1:
+            try:
+                novo_rm = int(value)
+            except ValueError:
+                self.message_handler.show_message(
+                    "O RM deve ser um número inteiro.", "error"
+                )
+                self._update_table()
+                return
+
+            # Impede duplicidade de RM (exceto na própria linha)
+            if novo_rm in df['RM'].values and novo_rm != rm_antigo:
+                aluno_existente = df[df['RM'] == novo_rm].iloc[0]['Nome do(a) Aluno(a)']
+                QMessageBox.warning(
+                    self,
+                    "RM Duplicado",
+                    f"Já existe um aluno com o RM {novo_rm}:\n{aluno_existente}\n\nPor favor, escolha um RM diferente."
+                )
+                self._update_table()
+                return
+
+            value = novo_rm  # Garante que será inteiro
+
+        edit_command = EditStudentCommand(
+            self.excel_manager,
+            self.data_manager,
+            real_idx,
+            col,
+            old_value,
+            value
+        )
+        self.command_manager.execute_command(edit_command)
 
 if __name__ == "__main__":
     app = QApplication([])
