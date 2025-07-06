@@ -12,6 +12,7 @@ class SearchManager:
     def search_student(self, search_term):
         """Executa a busca por aluno baseada no termo fornecido"""
         if not hasattr(self.excel_manager, 'df') or self.excel_manager.df.empty:
+            self.logger.warning("Tentativa de busca sem dados carregados.")
             return False
 
         if not search_term.strip():
@@ -21,13 +22,22 @@ class SearchManager:
         normalized_term = remove_acentos(search_term.lower())
 
         if normalized_term.isdigit():
-            result = self.excel_manager.df[self.excel_manager.df['RM'].astype(str) == normalized_term]
+            # Busca por RM (garante comparação como string)
+            result = self.excel_manager.df[
+                self.excel_manager.df['RM'].astype(str) == normalized_term
+            ]
             self.message_handler.show_search_results(len(result), by_rm=True)
         else:
+            # Busca por nome (substring insensível a acentos)
             mask = self.excel_manager.df['Nome do(a) Aluno(a)'].apply(
-                lambda x: normalized_term in remove_acentos(str(x).lower()))
+                lambda x: normalized_term in remove_acentos(str(x).lower())
+            )
             result = self.excel_manager.df[mask]
             self.message_handler.show_search_results(len(result), by_rm=False)
+
+        if result.empty:
+            self.logger.info(f"Nenhum resultado encontrado para: {search_term}")
+            self.message_handler.show_message("Nenhum aluno encontrado.", "warning")
 
         result_sorted = result.sort_values('Nome do(a) Aluno(a)')
         self.table_manager.update_table_with_data(result_sorted)

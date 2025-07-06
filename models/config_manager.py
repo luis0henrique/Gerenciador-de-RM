@@ -1,6 +1,7 @@
 import os
 import json
 from typing import Dict, Any, List, Optional
+import copy
 
 class ConfigManager:
     DEFAULT_CONFIG = {
@@ -15,18 +16,23 @@ class ConfigManager:
         self.config = self._load_config()
 
     def _load_config(self) -> Dict[str, Any]:
-        """Carrega o arquivo de configuração ou cria um novo com valores padrão"""
-        os.makedirs(os.path.dirname(self.config_file), exist_ok=True)
+        """
+        Carrega o arquivo de configuração ou cria um novo com valores padrão.
+        Garante que todos os campos obrigatórios estejam presentes.
+        """
+        config_dir = os.path.dirname(self.config_file)
+        if config_dir and not os.path.exists(config_dir):
+            os.makedirs(config_dir, exist_ok=True)
 
         if os.path.exists(self.config_file):
             try:
                 with open(self.config_file, 'r', encoding='utf-8') as f:
                     config = json.load(f)
-                    # Garante que todos os campos padrão existam
-                    for key, value in self.DEFAULT_CONFIG.items():
-                        if key not in config:
-                            config[key] = value
-                    return config
+                # Garante que todos os campos padrão existam
+                for key, value in self.DEFAULT_CONFIG.items():
+                    if key not in config:
+                        config[key] = value
+                return config
             except (json.JSONDecodeError, IOError) as e:
                 print(f"Erro ao carregar config: {e}")
                 # Se o arquivo estiver corrompido, cria um novo
@@ -35,14 +41,20 @@ class ConfigManager:
             return self._create_default_config()
 
     def _create_default_config(self) -> Dict[str, Any]:
-        """Cria um novo arquivo de configuração com valores padrão"""
-        os.makedirs(os.path.dirname(self.config_file), exist_ok=True)
+        """
+        Cria um novo arquivo de configuração com valores padrão.
+        """
+        config_dir = os.path.dirname(self.config_file)
+        if config_dir and not os.path.exists(config_dir):
+            os.makedirs(config_dir, exist_ok=True)
         with open(self.config_file, 'w', encoding='utf-8') as f:
             json.dump(self.DEFAULT_CONFIG, f, indent=4)
-        return self.DEFAULT_CONFIG.copy()
+        return copy.deepcopy(self.DEFAULT_CONFIG)
 
     def save_config(self):
-        """Salva a configuração atual no arquivo"""
+        """
+        Salva a configuração atual no arquivo.
+        """
         try:
             with open(self.config_file, 'w', encoding='utf-8') as f:
                 json.dump(self.config, f, indent=4)
@@ -51,12 +63,14 @@ class ConfigManager:
 
     # Métodos para recent_files
     def get_recent_files(self) -> List[str]:
-        """Retorna a lista de arquivos recentes válidos"""
+        """
+        Retorna a lista de arquivos recentes válidos.
+        Remove arquivos que não existem mais do disco.
+        """
         recent_files = self.config.get("recent_files", [])
-        # Filtra apenas arquivos existentes
         valid_files = [fp for fp in recent_files if fp and os.path.exists(fp)]
 
-        # Se houve remoção de arquivos inválidos, atualiza a lista
+        # Atualiza a lista se houver arquivos inválidos
         if len(valid_files) != len(recent_files):
             self.config["recent_files"] = valid_files
             self.save_config()
@@ -64,7 +78,10 @@ class ConfigManager:
         return valid_files
 
     def add_recent_file(self, file_path: str):
-        """Adiciona um arquivo à lista de recentes"""
+        """
+        Adiciona um arquivo à lista de recentes.
+        Mantém o limite de arquivos recentes e evita duplicatas.
+        """
         if not file_path or not os.path.exists(file_path):
             return
 
@@ -82,23 +99,31 @@ class ConfigManager:
 
     # Métodos para last_path
     def get_last_path(self) -> Optional[str]:
-        """Retorna o último arquivo acessado (caminho completo)"""
+        """
+        Retorna o último arquivo acessado (caminho completo), se existir.
+        """
         path = self.config.get("last_path")
         return path if path and os.path.exists(path) else None
 
     def set_last_path(self, file_path: str):
-        """Define o último caminho acessado (caminho completo do arquivo)"""
-        if file_path and os.path.exists(file_path):  # Verifica se o arquivo existe
+        """
+        Define o último caminho acessado (caminho completo do arquivo).
+        """
+        if file_path and os.path.exists(file_path):
             self.config["last_path"] = file_path
             self.save_config()
 
     # Métodos para theme
     def get_theme(self) -> str:
-        """Retorna o tema atual"""
+        """
+        Retorna o tema atual.
+        """
         return self.config.get("theme", "light")
 
     def set_theme(self, theme_name: str):
-        """Define o tema atual"""
+        """
+        Define o tema atual, se válido.
+        """
         if theme_name in ("light", "dark"):
             self.config["theme"] = theme_name
             self.save_config()

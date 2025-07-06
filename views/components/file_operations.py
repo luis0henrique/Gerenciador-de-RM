@@ -16,15 +16,11 @@ class FileOperations:
         """Carrega um arquivo Excel, seja via diálogo ou caminho direto"""
         if not file_path:
             file_path = self._get_file_path_from_dialog()
-
-        if not file_path:
+        if not file_path or not os.path.exists(file_path):
+            if file_path:
+                self._remove_missing_file_from_recent(file_path)
             return False
 
-        if not os.path.exists(file_path):
-            self._handle_missing_file(file_path)
-            return False
-
-        # Atualiza last_path antes de começar o carregamento
         self.config.set_last_path(file_path)
         self._prepare_ui_for_loading()
         self._start_async_load(file_path)
@@ -43,68 +39,78 @@ class FileOperations:
         if not self._validate_data_to_save():
             return False
 
-        try:
-            if hasattr(self.main_window, 'current_file') and self.main_window.current_file:
-                success = self._save_to_existing_file()
-                if success:
-                    # Atualiza a contagem de registros independentemente da mensagem anterior
-                    record_count = len(self.main_window.excel_manager.df)
-
-                    # Verifica se a mensagem anterior era de contagem
-                    if (hasattr(self.main_window, '_previous_message') and
-                        self.main_window._previous_message and
-                        "registros" in self.main_window._previous_message[0]):
-                        # Atualiza apenas o número mantendo o resto da mensagem
-                        prev_text = self.main_window._previous_message[0]
-                        new_text = prev_text.split("Exibindo")[0] + f"Exibindo {record_count} registros"
-                        self.main_window.message_handler.show_message(new_text, "default")
-                    else:
-                        # Comportamento normal para outras mensagens
-                        if hasattr(self.main_window, '_previous_message') and self.main_window._previous_message:
-                            text, message_type = self.main_window._previous_message
-                            self.main_window.message_handler.show_message(text, message_type)
-                        else:
-                            self.main_window.message_handler.show_record_count(record_count)
-                return success
-            return self.save_file_as()
-        except Exception as e:
-            self.main_window.logger.error(f"Erro ao salvar arquivo: {str(e)}")
-            QMessageBox.critical(self.main_window, "Erro", f"Falha ao salvar:\n{str(e)}")
-            return False
+        if getattr(self.main_window, 'current_file', None):
+            return self._save_and_notify(self.main_window.current_file)
+        return self.save_file_as()
 
     def save_file_as(self):
         """Salva como novo arquivo"""
         if not self._validate_data_to_save():
             return False
 
-        # Usa o diretório do last_path se existir, senão usa o padrão
         last_path = self.config.get_last_path()
         initial_dir = os.path.dirname(last_path) if last_path else ""
-
         file_path, _ = QFileDialog.getSaveFileName(
             self.main_window,
             "Salvar Como",
             initial_dir,
             "Excel Files (*.xlsx)"
         )
-
         if not file_path:
             return False
-
         if not file_path.endswith('.xlsx'):
             file_path += '.xlsx'
 
-        # Atualiza last_path com caminho completo
         self.config.set_last_path(file_path)
         self.main_window.current_file = file_path
-        return self._save_to_existing_file()
+        return self._save_and_notify(file_path)
 
-    # Métodos auxiliares privados
+    def _save_and_notify(self, file_path):
+        """Salva o arquivo e exibe mensagens apropriadas"""
+        try:
+            if not self._create_backup(file_path):
+                QMessageBox.warning(self.main_window, "Aviso", "Não foi possível criar backup do arquivo.")
+            self.main_window.excel_manager.df.to_excel(file_path, index=False)
+            QMessageBox.information(self.main_window, "Sucesso", f"Arquivo salvo em:\n{file_path}")
+            self._show_post_save_message()
+            return True
+        except Exception as e:
+            self.main_window.logger.error(f"Erro ao salvar arquivo: {str(e)}")
+            QMessageBox.critical(self.main_window, "Erro", f"Falha ao salvar:\n{str(e)}")
+            return False
+
+    def _create_backup(self, file_path):
+        """Cria backup do arquivo antes de salvar"""
+        backup_dir = os.path.join("resources", "backup")
+        os.makedirs(backup_dir, exist_ok=True)
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        backup_name = f"backup_{timestamp}_{os.path.basename(file_path)}"
+        backup_path = os.path.join(backup_dir, backup_name)
+        try:
+            shutil.copy2(file_path, backup_path)
+            return True
+        except Exception as e:
+            self.main_window.logger.error(f"Erro ao criar backup: {str(e)}")
+            return False
+
+    def _show_post_save_message(self):
+        """Exibe mensagem após salvar, mantendo contexto anterior se necessário"""
+        record_count = len(self.main_window.excel_manager.df)
+        prev_msg = getattr(self.main_window, '_previous_message', None)
+        if prev_msg and "registros" in prev_msg[0]:
+            prev_text = prev_msg[0]
+            new_text = prev_text.split("Exibindo")[0] + f"Exibindo {record_count} registros"
+            self.main_window.message_handler.show_message(new_text, "default")
+        elif prev_msg:
+            text, message_type = prev_msg
+            self.main_window.message_handler.show_message(text, message_type)
+        else:
+            self.main_window.message_handler.show_record_count(record_count)
+
     def _get_file_path_from_dialog(self):
         """Abre diálogo para selecionar arquivo"""
         last_path = self.config.get_last_path()
         initial_dir = last_path if last_path else ""
-
         return QFileDialog.getOpenFileName(
             self.main_window,
             "Abrir Arquivo Excel",
@@ -112,7 +118,7 @@ class FileOperations:
             "Excel Files (*.xlsx *.xls)"
         )[0]
 
-    def _handle_missing_file(self, file_path):
+    def _remove_missing_file_from_recent(self, file_path):
         """Remove arquivo inexistente da lista de recentes"""
         recent_files = self.config.get_recent_files()
         if file_path in recent_files:
@@ -154,16 +160,11 @@ class FileOperations:
             self.main_window.command_manager.clear()
         self.main_window.current_file = file_path
         self.main_window._update_table()
-
-        # Atualiza ambos: recent_files e last_path
         self.config.add_recent_file(file_path)
         self.config.set_last_path(file_path)
-
         self.main_window.setWindowTitle(f"Gerenciador de RMs - {os.path.basename(file_path)}")
-
         record_count = len(self.main_window.excel_manager.df)
         self.main_window.message_handler.show_record_count(record_count)
-
         self.main_window.progress_bar.setRange(0, 100)
         self.main_window.progress_bar.setValue(100)
         self.main_window.logger.info(f"Arquivo {file_path} carregado com sucesso")
@@ -186,47 +187,15 @@ class FileOperations:
             return False
         return True
 
-    def _save_to_existing_file(self):
-        """Salva no arquivo atual"""
-        try:
-            self._create_backup(self.main_window.current_file)
-            self.main_window.excel_manager.df.to_excel(self.main_window.current_file, index=False)
-            QMessageBox.information(self.main_window, "Sucesso",
-                                  f"Arquivo salvo em:\n{self.main_window.current_file}")
-            return True
-        except Exception as e:
-            QMessageBox.critical(self.main_window, "Erro", f"Falha ao salvar:\n{str(e)}")
-            return False
-
-    def _create_backup(self, file_path):
-        """Cria backup do arquivo antes de salvar"""
-        backup_dir = os.path.join("resources", "backup")
-        os.makedirs(backup_dir, exist_ok=True)
-
-        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-        backup_name = f"backup_{timestamp}_{os.path.basename(file_path)}"
-        backup_path = os.path.join(backup_dir, backup_name)
-
-        try:
-            shutil.copy2(file_path, backup_path)
-        except Exception as e:
-            self.main_window.logger.error(f"Erro ao criar backup: {str(e)}")
-            raise
-
     def get_recent_files(self):
         """Retorna a lista de arquivos recentes válidos (que ainda existem)"""
         recent_files = self.config.get_recent_files()
-        # Filtra apenas arquivos que ainda existem
         valid_files = [f for f in recent_files if os.path.exists(f)]
-
-        # Atualiza a lista no config se algum arquivo foi removido
         if len(valid_files) != len(recent_files):
             self.config.config["recent_files"] = valid_files
             self.config.save_config()
-
         return valid_files
 
     def cleanup_recent_files(self):
         """Remove arquivos inexistentes da lista de recentes"""
-        valid_files = self.get_recent_files()  # Já faz a limpeza automaticamente
-        return valid_files
+        return self.get_recent_files()

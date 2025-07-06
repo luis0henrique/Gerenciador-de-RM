@@ -49,3 +49,13 @@ def formatar_nome(nome: str) -> str:
         palavras_formatadas.append(palavra)
 
     return ' '.join(palavras_formatadas)
+
+def extrair_sobrenome(nome: str) -> str:
+    sufixos = {
+        'JUNIOR', 'JR', 'FILHO', 'FILHA', 'NETO', 'NETA', 'SOBRINHO', 'SOBRINHA'
+    }
+    partes = nome.strip().split()
+    # Remove sufixos especiais do final, se houver
+    while partes and partes[-1].upper().replace('.', '') in sufixos:
+        partes.pop()
+    return partes[-1] if partes else ""

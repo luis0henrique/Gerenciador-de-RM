@@ -348,3 +348,34 @@ QProgressBar:indeterminate::chunk {
 QDialog {
     background-color: #f5f5f5;
 }
+
+/* Botões de paginação A-Z */
+.az-page-btn {
+    min-width: 24px;
+    max-width: 24px;
+    min-height: 25px;
+    max-height: 25px;
+    font-size: 18px;
+    padding: 0;
+    /* margin: 0 1px; */
+    border-radius: 0;
+    background: #ffffff;
+    color: #858585;
+    border: 1px solid #ffffff;
+}
+.az-page-btn:hover {
+    background: #7bc3e4;
+    color: #fff;
+    border: 1px solid #7bc3e4;
+}
+.az-page-btn:pressed {
+    background: #298ba9;
+    color: #fff;
+	border: 1px solid #298ba9;
+}
+.az-page-btn.active {
+    background: #46b3e6;
+    color: #fff;
+    font-weight: bold;
+    border: 1px solid #46b3e6;
+}

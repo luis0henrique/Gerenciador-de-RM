@@ -2,6 +2,7 @@ import logging
 from PyQt5.QtCore import QObject, pyqtSignal, QThread
 import pandas as pd
 from typing import List, Dict, Any
+from functools import partial
 
 class Command:
     def execute(self):
@@ -31,10 +32,10 @@ class CommandWorker(QObject):
                 result = self.command.undo()
             elif self.operation == 'redo':
                 result = self.command.redo()
-            self.finished.emit(True, result)
+            self.finished.emit(True, self.command)
         except Exception as e:
             self.logger.error(f"Erro na operação {self.operation}: {str(e)}")
-            self.finished.emit(False, None)
+            self.finished.emit(False, self.command)
 
 class CommandManager(QObject):
     operation_started = pyqtSignal(str)
@@ -46,30 +47,39 @@ class CommandManager(QObject):
         self.redo_stack = []
         self.max_history = max_history
         self.logger = logging.getLogger(__name__)
-        self.worker_thread = None
+        self._active_threads = []
 
     def _run_command_in_thread(self, command, operation, callback):
-        self.worker_thread = QThread()
-        self.worker = CommandWorker(command, operation)
-        self.worker.moveToThread(self.worker_thread)
+        thread = QThread()
+        worker = CommandWorker(command, operation)
+        worker.moveToThread(thread)
 
-        self.worker_thread.started.connect(self.worker.run)
-        self.worker.finished.connect(callback)
-        self.worker.finished.connect(self.worker_thread.quit)
-        self.worker.finished.connect(self.worker.deleteLater)
-        self.worker_thread.finished.connect(self.worker_thread.deleteLater)
+        self._active_threads.append((thread, worker))
 
-        self.worker_thread.start()
+        def cleanup(thread, worker):
+            try:
+                self._active_threads.remove((thread, worker))
+            except ValueError:
+                pass
+            thread.deleteLater()
+
+        thread.started.connect(worker.run)
+        worker.finished.connect(callback)
+        worker.finished.connect(thread.quit)
+        worker.finished.connect(worker.deleteLater)
+        thread.finished.connect(partial(cleanup, thread, worker))
+
+        thread.start()
 
     def execute_command(self, command: Command):
         self.operation_started.emit("Processando operação...")
         self._run_command_in_thread(command, 'execute', self._on_command_executed)
 
-    def _on_command_executed(self, success, result):
+    def _on_command_executed(self, success, command):
         if success:
             if len(self.undo_stack) >= self.max_history:
                 self.undo_stack.pop(0)
-            self.undo_stack.append(self.worker.command)
+            self.undo_stack.append(command)
             self.redo_stack.clear()
             self.operation_finished.emit(True, "Operação concluída!")
         else:
@@ -153,7 +163,7 @@ class RemoveStudentsCommand(Command):
         self.excel_manager.df = pd.concat(
             [self.excel_manager.df, self.removed_rows],
             ignore_index=True
-        ).sort_values('RM', ascending=False)
+        ).sort_values('RM', ascending=False).reset_index(drop=True)
         self.data_manager._build_indexes()
         return True
 
@@ -168,7 +178,6 @@ class EditStudentCommand(Command):
 
     def execute(self):
         df = self.excel_manager.df
-        col_name = df.columns[self.col]
         df.iat[self.row, self.col] = self.new_value
         self.data_manager._build_indexes()
         return True

@@ -3,7 +3,7 @@ from PyQt5.QtWidgets import QMessageBox, QDialog, QVBoxLayout, QTextEdit, QDialo
 class AlunoDialogs:
     @staticmethod
     def show_rm_errors(parent, problemas):
-        """Mostra erros de RM formatados"""
+        """Exibe uma mensagem de erro para RMs não numéricos."""
         msg = QMessageBox(parent)
         msg.setIcon(QMessageBox.Warning)
         msg.setWindowTitle("Problemas nos RMs")
@@ -13,7 +13,7 @@ class AlunoDialogs:
 
     @staticmethod
     def show_duplicate_rms(parent, duplicados):
-        """Show duplicate RM warnings"""
+        """Exibe aviso de RMs duplicados."""
         dialog = QDialog(parent)
         dialog.setWindowTitle("RMs Duplicados")
         dialog.setMinimumSize(600, 400)
@@ -45,7 +45,7 @@ class AlunoDialogs:
 
     @staticmethod
     def show_similarity_warnings(parent, duplicatas):
-        """Show name similarity warnings"""
+        """Exibe aviso de possíveis duplicatas por similaridade de nome."""
         dialog = QDialog(parent)
         dialog.setWindowTitle("Aviso de Possíveis Duplicatas")
         dialog.setMinimumSize(700, 500)
@@ -80,7 +80,7 @@ class AlunoDialogs:
 
     @staticmethod
     def show_confirmation_dialog(parent, alunos_validos):
-        """Confirma e valida a adição de alunos"""
+        """Exibe diálogo de confirmação para adicionar alunos."""
         dialog = QDialog(parent)
         dialog.setWindowTitle("Confirmar")
         layout = QVBoxLayout(dialog)

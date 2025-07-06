@@ -2,7 +2,7 @@ import os
 import logging
 from PyQt5.QtWidgets import (
     QApplication, QMainWindow, QWidget, QVBoxLayout, QHBoxLayout,
-    QPushButton, QTableView, QLineEdit, QProgressBar, QMessageBox
+    QPushButton, QTableView, QLineEdit, QProgressBar, QMessageBox, QGridLayout
 )
 from PyQt5.QtCore import Qt, QSize
 from PyQt5.QtGui import QIcon
@@ -16,6 +16,8 @@ from views.window_manager import WindowManager
 from views.components.menu import MenuManager
 from views.components.table import TableManager
 from views.components.file_operations import FileOperations
+from PyQt5.QtWidgets import QHBoxLayout, QPushButton, QWidget, QSizePolicy
+import string
 
 class MainWindow(QMainWindow, CenterWindowMixin):
     def __init__(self):
@@ -32,7 +34,6 @@ class MainWindow(QMainWindow, CenterWindowMixin):
         self.current_file = None
 
         try:
-            # Inicializa os gerenciadores
             self.logger.debug("Criando FileOperations e MenuManager...")
             self.file_ops = FileOperations(self)
             self.menu_manager = MenuManager(self)
@@ -41,10 +42,8 @@ class MainWindow(QMainWindow, CenterWindowMixin):
             self._init_ui()
             self._connect_signals()
 
-            # Inicializa o SearchManager após a UI estar pronta
             self.search_manager = SearchManager(self.excel_manager, self.table_manager, self.message_handler)
 
-            # Carrega configurações iniciais
             self._init_settings()
             self.table_manager.main_window = self
             self.loader_thread = None
@@ -104,11 +103,11 @@ class MainWindow(QMainWindow, CenterWindowMixin):
 
             self.btn_del = QPushButton("  Excluir")
             self.btn_del.setIcon(QIcon("assets/images/del_icon_white.png"))
-            self.btn_del.setToolTip("Excluir alunos selecionados (Delete))")
+            self.btn_del.setToolTip("Excluir alunos selecionados (Delete)")
 
             self.btn_save = QPushButton("  Salvar")
             self.btn_save.setIcon(QIcon("assets/images/save_icon_white.png"))
-            self.btn_save.setToolTip("Salva as alterações no arquivo e cria Backups (Crtl+S)")
+            self.btn_save.setToolTip("Salva as alterações no arquivo e cria Backups (Ctrl+S)")
 
             # Configuração do cursor
             for btn in [self.btn_add, self.btn_undo, self.btn_redo, self.btn_del, self.btn_save]:
@@ -150,10 +149,30 @@ class MainWindow(QMainWindow, CenterWindowMixin):
             search_layout.addWidget(self.search_btn)
             content_layout.addLayout(search_layout)
 
-            # Inicializa o MessageHandler na posição correta (índice 3)
+            # MessageHandler (deixe como está)
             self.message_handler = MessageHandler(self.content_widget, content_layout)
 
-            # Table
+            # ====== Botões de A-Z (acima da tabela) ======
+            self.az_widget = QWidget()
+            az_layout = QGridLayout(self.az_widget)
+            az_layout.setContentsMargins(0, 0, 0, 0)
+            az_layout.setHorizontalSpacing(0)  # Espaço horizontal entre botões
+            az_layout.setVerticalSpacing(0)
+
+            self.page_buttons = {}
+            num_letters = len(string.ascii_uppercase)
+            for idx, letter in enumerate(string.ascii_uppercase):
+                btn = QPushButton(letter)
+                btn.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
+                btn.setProperty("class", "az-page-btn")
+                btn.clicked.connect(lambda _, l=letter: self.table_manager.set_page_by_letter(l))
+                self.page_buttons[letter] = btn
+                az_layout.addWidget(btn, 0, idx)
+
+            content_layout.addWidget(self.az_widget)
+            # ====== Fim dos botões de A-Z ======
+
+            # Tabela
             self.table = QTableView()
             self.table_manager = TableManager(self.table, self.message_handler)
             content_layout.addWidget(self.table)
@@ -168,7 +187,8 @@ class MainWindow(QMainWindow, CenterWindowMixin):
                 self.search_btn,
                 self.search_field,
                 self.table,
-                self.message_handler.message_widget
+                self.message_handler.message_widget,
+                self.az_widget
             ]
             for element in self.elements_with_shadow:
                 add_shadow(element)
@@ -224,7 +244,7 @@ class MainWindow(QMainWindow, CenterWindowMixin):
             self.btn_del.setShortcut("Delete")
             self.btn_undo.setShortcut("Ctrl+Z")
             self.btn_redo.setShortcut("Ctrl+Y")
-            self.btn_redo.setShortcut("Ctrl+S")
+            self.btn_save.setShortcut("Ctrl+S")
 
             self.search_btn.clicked.connect(lambda: self.search_manager.search_student(self.search_field.text()))
             self.search_field.returnPressed.connect(lambda: self.search_manager.search_student(self.search_field.text()))
@@ -263,7 +283,8 @@ class MainWindow(QMainWindow, CenterWindowMixin):
             self.search_btn,
             self.search_field,
             self.table,
-            self.message_handler.message_widget
+            self.message_handler.message_widget,
+            self.az_widget
         ]
         update_shadows_on_theme_change(elements_with_shadow)
 
@@ -278,7 +299,7 @@ class MainWindow(QMainWindow, CenterWindowMixin):
         self._update_buttons_state()
 
         # Atualiza a mensagem padrão com a contagem atual de registros
-        if hasattr(self.excel_manager, 'df'):
+        if hasattr(self.excel_manager, 'df') and not self.excel_manager.df.empty:
             count = len(self.excel_manager.df)
             self.message_handler.set_default_message(f"Exibindo {count} registros", MESSAGE_DEFAULT)
 
@@ -296,8 +317,8 @@ class MainWindow(QMainWindow, CenterWindowMixin):
         self.btn_add.setEnabled(has_data)
         self.btn_save.setEnabled(has_data)
         self.btn_del.setEnabled(has_data)
-        self.btn_undo.setEnabled(len(self.command_manager.undo_stack) > 0)
-        self.btn_redo.setEnabled(len(self.command_manager.redo_stack) > 0)
+        self.btn_undo.setEnabled(has_data and len(self.command_manager.undo_stack) > 0)
+        self.btn_redo.setEnabled(has_data and len(self.command_manager.redo_stack) > 0)
 
     def _handle_search_change(self, text):
         """Reage a mudanças no campo de busca"""
@@ -306,11 +327,15 @@ class MainWindow(QMainWindow, CenterWindowMixin):
 
     def _handle_delete_action(self):
         """Manipula a ação de exclusão de alunos de forma assíncrona"""
-        if not hasattr(self, 'table_manager') or not self.table.selectedIndexes():
+        if not hasattr(self, 'table_manager') or not self.table.selectionModel().hasSelection():
             self.message_handler.show_message("Nenhuma linha selecionada para exclusão", "warning")
             return
 
         selected_data = self.table_manager.get_selected_rows_data()
+        if not selected_data:
+            self.message_handler.show_message("Nenhuma linha selecionada para exclusão", "warning")
+            return
+
         remove_command = RemoveStudentsCommand(
             self.excel_manager,
             self.data_manager,
@@ -371,38 +396,38 @@ class MainWindow(QMainWindow, CenterWindowMixin):
 
     def _handle_table_edit(self, row, col, value, rm_antigo):
         df = self.excel_manager.df
-        # Encontre o índice real no DataFrame pelo RM antigo
-        idxs = df.index[df['RM'] == rm_antigo].tolist()
-        if not idxs:
-            return  # RM não encontrado
-        real_idx = idxs[0]
-        old_value = df.iat[real_idx, col]
-        if str(old_value) == value:
-            return  # Não mudou nada
 
-        # Se for edição do RM (col == 1)
-        if col == 1:
+        match = df[df['RM'] == rm_antigo]
+        if match.empty:
+            self.message_handler.show_message("Registro não encontrado. A tabela pode ter sido modificada.", "error")
+            self._update_table()
+            return
+
+        real_idx = match.index[0]
+        old_value = df.iat[real_idx, col]
+
+        if str(old_value) == value:
+            return
+
+        if col == 2:
             try:
                 novo_rm = int(value)
             except ValueError:
-                self.message_handler.show_message(
-                    "O RM deve ser um número inteiro.", "error"
-                )
+                self.message_handler.show_message("O RM deve ser um número inteiro.", "error")
                 self._update_table()
                 return
 
-            # Impede duplicidade de RM (exceto na própria linha)
             if novo_rm in df['RM'].values and novo_rm != rm_antigo:
                 aluno_existente = df[df['RM'] == novo_rm].iloc[0]['Nome do(a) Aluno(a)']
                 QMessageBox.warning(
                     self,
                     "RM Duplicado",
-                    f"Já existe um aluno com o RM {novo_rm}:\n{aluno_existente}\n\nPor favor, escolha um RM diferente."
+                    f"Já existe um aluno com o RM {novo_rm}:\n{aluno_existente}\n\nPor favor, verifique o RM na ficha."
                 )
                 self._update_table()
                 return
 
-            value = novo_rm  # Garante que será inteiro
+            value = novo_rm
 
         edit_command = EditStudentCommand(
             self.excel_manager,

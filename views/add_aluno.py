@@ -3,12 +3,20 @@ from PyQt5.QtWidgets import (
     QPushButton, QLabel, QMessageBox, QHeaderView,
     QSizePolicy, QWidget, QApplication
 )
-from PyQt5.QtCore import Qt, pyqtSignal
+from PyQt5.QtCore import Qt, pyqtSignal, QTimer
 from utils.ui_helpers import CenterWindowMixin, add_shadow, update_shadows_on_theme_change, TableNavigationMixin, CornerSquare
 from utils.helpers import formatar_nome
 from utils.styles import get_current_stylesheet
 from views.components.dialogs import AlunoDialogs
 from models.command_manager import AddStudentCommand
+
+class CustomMessageBox(QMessageBox):
+    """QMessageBox customizado para ignorar Enter/Return no fechamento."""
+    def keyPressEvent(self, event):
+        if event.key() in (Qt.Key_Return, Qt.Key_Enter):
+            event.ignore()
+        else:
+            super().keyPressEvent(event)
 
 class AddAlunoWindow(QDialog, CenterWindowMixin, TableNavigationMixin):
     aluno_adicionado_signal = pyqtSignal()
@@ -44,11 +52,9 @@ class AddAlunoWindow(QDialog, CenterWindowMixin, TableNavigationMixin):
 
     def _init_ui(self):
         """Inicia a interface da janela"""
-        # Main layout
         main_layout = QVBoxLayout(self)
         main_layout.setContentsMargins(0, 0, 0, 0)
 
-        # Central content container
         window_layout = QHBoxLayout()
         window_layout.setContentsMargins(0, 0, 0, 0)
         window_layout.setSpacing(0)
@@ -61,20 +67,16 @@ class AddAlunoWindow(QDialog, CenterWindowMixin, TableNavigationMixin):
         window_layout.addWidget(self.content_widget)
         window_layout.addStretch(1)
 
-        # Content layout
         content_layout = QVBoxLayout(self.content_widget)
         content_layout.setContentsMargins(20, 5, 20, 20)
 
-        # Setup table
         self._setup_table(content_layout)
-
-        # Setup buttons
         self._setup_buttons(content_layout)
+        self._setup_rm_validation()
 
     def _setup_table(self, layout):
         """Configura a tabela de entrada do aluno"""
-        # Criação inicial da tabela
-        self.table = QTableWidget(100, 2) # 100 linhas, 2 colunas
+        self.table = QTableWidget(100, 2)  # 100 linhas, 2 colunas
         self.table.setHorizontalHeaderLabels(["Nome do(a) Aluno(a)", "RM"])
         self.table.setToolTip(
             "Digite os nomes dos alunos na primeira coluna e os RMs na segunda\n"
@@ -82,30 +84,26 @@ class AddAlunoWindow(QDialog, CenterWindowMixin, TableNavigationMixin):
         )
         self.table.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
         self.table.setCornerButtonEnabled(False)
-        self.table.setEditTriggers(QTableWidget.AllEditTriggers) # Permite editar todas as células
+        self.table.setEditTriggers(QTableWidget.AllEditTriggers)
 
-        # Cabeçalho vertical (índices)
         vertical_header = self.table.verticalHeader()
-        vertical_header.setSectionResizeMode(QHeaderView.Fixed) # Fixa o tamanho
-        vertical_header.setDefaultSectionSize(32) # Altura padrão das linhas
-        vertical_header.setMinimumSectionSize(32) # Tamanho mínimo
+        vertical_header.setSectionResizeMode(QHeaderView.Fixed)
+        vertical_header.setDefaultSectionSize(32)
+        vertical_header.setMinimumSectionSize(32)
         vertical_header.setDefaultAlignment(Qt.AlignHCenter | Qt.AlignVCenter)
-        vertical_header.setFixedWidth(50) # Largura fixa para a coluna de índices
+        vertical_header.setFixedWidth(50)
 
-        # Cabeçalho horizontal (colunas)
         header = self.table.horizontalHeader()
-        header.setSectionResizeMode(0, QHeaderView.Stretch) # Coluna de nomes
-        header.setSectionResizeMode(1, QHeaderView.Fixed) #Coluna de RM
-        header.resizeSection(0, 550) #Largura inicial coluna de nomes
-        header.resizeSection(1, 100) # Largura fixa para coluna de RM
-        header.setFixedHeight(32) # Altura fixa para o header horizontal
+        header.setSectionResizeMode(0, QHeaderView.Stretch)
+        header.setSectionResizeMode(1, QHeaderView.Fixed)
+        header.resizeSection(0, 550)
+        header.resizeSection(1, 100)
+        header.setFixedHeight(32)
 
-        # Cria e posiciona o quadrado manualmente
         self.corner_square = CornerSquare(self.table)
-        self.corner_square.move(1, 1) # Posiciona no canto superior esquerdo
-        self.corner_square.raise_() # Garante que fique acima dos headers
+        self.corner_square.move(1, 1)
+        self.corner_square.raise_()
 
-        # Aplica sombra dinâmica
         add_shadow(self.table)
 
         layout.addWidget(QLabel("Preencha os dados dos(as) alunos(as) (Nome|RM):"))
@@ -121,7 +119,7 @@ class AddAlunoWindow(QDialog, CenterWindowMixin, TableNavigationMixin):
         update_shadows_on_theme_change(elements_with_shadow)
 
     def _setup_buttons(self, layout):
-        """Configure the action buttons"""
+        """Configura os botões de ação"""
         btn_layout = QHBoxLayout()
 
         self.btn_add_alunos = QPushButton("Adicionar Alunos(as)")
@@ -129,11 +127,9 @@ class AddAlunoWindow(QDialog, CenterWindowMixin, TableNavigationMixin):
         self.btn_cancel = QPushButton("Cancelar")
         self.btn_cancel.setToolTip("Fecha esta janela sem adicionar alunos")
 
-        # Apply button styling
         self.btn_add_alunos.setProperty("class", "btn_add_alunos")
         self.btn_cancel.setProperty("class", "btn_cancel")
 
-        # Aplica sombras dinâmicas
         add_shadow(self.btn_add_alunos)
         add_shadow(self.btn_cancel)
 
@@ -146,15 +142,11 @@ class AddAlunoWindow(QDialog, CenterWindowMixin, TableNavigationMixin):
     def resizeEvent(self, event):
         """Ajusta dinamicamente o layout e a posição do quadrado ao redimensionar"""
         super().resizeEvent(event)
-
-        # Ajusta dinamicamente o layout ao redimensionar
         if hasattr(self, 'content_widget'):
             content_width = min(self.width(), self.MAX_CONTENT_WIDTH)
             self.content_widget.setFixedWidth(content_width)
             if self.content_widget.layout():
                 self.content_widget.layout().activate()
-
-        # Ajusta a posição do quadrado quando a tabela é redimensionada
         if hasattr(self, 'corner_square'):
             self.corner_square.move(1, 1)
 
@@ -164,41 +156,32 @@ class AddAlunoWindow(QDialog, CenterWindowMixin, TableNavigationMixin):
         self.btn_cancel.clicked.connect(self.close)
         self.table.keyPressEvent = lambda event: self.handle_table_key_press(event, self.table)
 
-    def _processar_alunos(self):
-        """Processa todos os alunos adicionados de forma otimizada"""
-        alunos = self._coletar_dados_tabela()
-        if not alunos:
-            QMessageBox.warning(self, "Aviso", "Nenhum(a) aluno(a) válido(a) para adicionar")
-            return
-
-        resultados = self.data_manager.validar_alunos_em_lote(alunos)
-
-        if resultados['problemas_rm']:
-            AlunoDialogs.show_rm_errors(self, resultados['problemas_rm'])
-            return
-
-        if resultados['rms_duplicados']:
-            AlunoDialogs.show_duplicate_rms(self, resultados['rms_duplicados'])
-            return
-
-        if resultados['duplicatas'] and not AlunoDialogs.show_similarity_warnings(self, resultados['duplicatas']):
-            return
-
-        if resultados['alunos_validos'] and AlunoDialogs.show_confirmation_dialog(self, resultados['alunos_validos']):
-            self._adicionar_alunos(resultados['alunos_validos'])
-
     def _coletar_dados_tabela(self):
         """Coleta dados da tabela de forma eficiente"""
         alunos = []
         for row in range(self.table.rowCount()):
             nome_item = self.table.item(row, 0)
             rm_item = self.table.item(row, 1)
-            if nome_item and rm_item:
-                nome = formatar_nome(nome_item.text().strip())  # Formata aqui
-                rm = rm_item.text().strip()
-                if nome and rm:
-                    alunos.append((row+1, nome, rm))
+            nome = formatar_nome(nome_item.text().strip()) if nome_item and nome_item.text().strip() else ""
+            rm = rm_item.text().strip() if rm_item and rm_item.text().strip() else ""
+            if nome and rm:
+                alunos.append((row+1, nome, rm))
         return alunos
+
+    def _processar_alunos(self):
+        """Processa todos os alunos adicionados de forma otimizada"""
+        alunos = self._coletar_dados_tabela()
+        if not alunos:
+            self._safe_show_message("Aviso", "Nenhum(a) aluno(a) válido(a) para adicionar", QMessageBox.Warning)
+            return
+
+        resultados = self.data_manager.validar_alunos_em_lote(alunos)
+
+        if resultados['duplicatas'] and not AlunoDialogs.show_similarity_warnings(self, resultados['duplicatas']):
+            return
+
+        if resultados['alunos_validos'] and AlunoDialogs.show_confirmation_dialog(self, resultados['alunos_validos']):
+            self._adicionar_alunos(resultados['alunos_validos'])
 
     def _adicionar_alunos(self, alunos_validos):
         """Adiciona alunos ao banco de dados de forma síncrona"""
@@ -210,21 +193,122 @@ class AddAlunoWindow(QDialog, CenterWindowMixin, TableNavigationMixin):
                 self.data_manager.adicionar_aluno(nome, int(rm))
                 QApplication.processEvents()
 
-            QMessageBox.information(
-                self,
+            self._safe_show_message(
                 "Sucesso",
-                f"{len(alunos_validos)} aluno(s) adicionado(s) com sucesso!"
+                f"{len(alunos_validos)} aluno(s) adicionado(s) com sucesso!",
+                QMessageBox.Information
             )
 
             self.aluno_adicionado_signal.emit()
             self.close()
 
         except Exception as e:
-            QMessageBox.critical(
-                self,
+            self._safe_show_message(
                 "Erro",
-                f"Falha ao adicionar aluno(s):\n{str(e)}"
+                f"Falha ao adicionar aluno(s):\n{str(e)}",
+                QMessageBox.Critical
             )
         finally:
             self.btn_add_alunos.setEnabled(True)
-            self.btn_add_alunos.setText("Adicionar Aluno(s)")
+            self.btn_add_alunos.setText("Adicionar Alunos(as)")
+
+    def _setup_rm_validation(self):
+        """Configura a validação de RM em tempo real"""
+        self.table.itemChanged.connect(self._schedule_rm_validation)
+
+    def _schedule_rm_validation(self, item):
+        """Agenda a validação para evitar problemas de thread"""
+        if item.column() == 1:  # Só validamos a coluna de RM
+            QTimer.singleShot(0, lambda: self._validate_rm_on_edit(item))
+
+    def _validate_rm_on_edit(self, item):
+        """Valida o RM quando uma célula é editada"""
+        try:
+            if not item or item.column() != 1:
+                return
+
+            rm = item.text().strip()
+            if not rm:
+                return
+
+            # Verifica se é número válido
+            try:
+                rm_int = int(rm)
+            except ValueError:
+                self._show_invalid_rm_message(item)
+                return
+
+            # Verifica duplicatas na tabela
+            duplicates_in_table = self._check_duplicates_in_table(rm_int, item.row())
+            if duplicates_in_table:
+                self._show_duplicate_message(rm_int, duplicates_in_table, item)
+                return
+
+            # Verifica duplicatas no arquivo
+            if self.data_manager and hasattr(self.data_manager, 'excel_manager'):
+                df = self.data_manager.excel_manager.df
+                if not df.empty and rm_int in df['RM'].values:
+                    aluno_existente = df[df['RM'] == rm_int].iloc[0]['Nome do(a) Aluno(a)']
+                    self._show_duplicate_message(rm_int, [aluno_existente], item)
+                    return
+
+        except Exception as e:
+            print(f"Erro durante validação: {str(e)}")
+
+    def _check_duplicates_in_table(self, rm, current_row):
+        """Verifica se o RM já existe em outras linhas da tabela"""
+        duplicates = []
+        for row in range(self.table.rowCount()):
+            if row == current_row:
+                continue
+            rm_item = self.table.item(row, 1)
+            if rm_item and rm_item.text().strip():
+                try:
+                    if int(rm_item.text().strip()) == rm:
+                        nome_item = self.table.item(row, 0)
+                        nome = nome_item.text().strip() if nome_item and nome_item.text().strip() else "Sem nome"
+                        duplicates.append(nome)
+                except ValueError:
+                    continue
+        return duplicates
+
+    def _show_invalid_rm_message(self, item):
+        """Mostra mensagem de RM inválido e seleciona a célula para correção"""
+        QTimer.singleShot(0, lambda: (
+            self._safe_show_message(
+                "RM Inválido",
+                "A coluna RM deve conter apenas números inteiros.\n",
+                QMessageBox.Warning
+            ),
+            self._select_item(item)
+        ))
+
+    def _show_duplicate_message(self, rm, duplicates, item):
+        """Mostra mensagem de RM duplicado e seleciona a célula para correção"""
+        if len(duplicates) == 1:
+            msg = f"O RM {rm} já está sendo usado por:\n{duplicates[0]}"
+        else:
+            msg = f"O RM {rm} está duplicado na tabela para:\n" + "\n".join(duplicates)
+
+        QTimer.singleShot(0, lambda: (
+            self._safe_show_message(
+                "RM Duplicado",
+                f"{msg}\n\nPor favor, corrija o RM antes de continuar.",
+                QMessageBox.Warning
+            ),
+            self._select_item(item)
+        ))
+
+    def _select_item(self, item):
+        """Seleciona a célula para facilitar a correção pelo usuário"""
+        self.table.setCurrentItem(item)
+        self.table.editItem(item)
+
+    def _safe_show_message(self, title, message, icon):
+        """Mostra a mensagem de forma segura na thread principal"""
+        msg_box = CustomMessageBox(self)
+        msg_box.setWindowTitle(title)
+        msg_box.setText(message)
+        msg_box.setIcon(icon)
+        msg_box.setStandardButtons(QMessageBox.Ok)
+        msg_box.exec_()
