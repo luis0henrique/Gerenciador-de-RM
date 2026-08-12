@@ -2,6 +2,7 @@ import logging
 from PyQt5.QtWidgets import QMessageBox
 from models.data_manager import DataManager
 from views.add_aluno import AddAlunoWindow
+from views.edit_aluno import EditAlunoWindow
 
 class WindowManager:
     def __init__(self, main_window):
@@ -12,13 +13,21 @@ class WindowManager:
         self.main_window = main_window
         self.logger = logging.getLogger(__name__)
         self.add_aluno_window = None  # Referência à janela de adição
+        self.edit_aluno_window = None  # Referência à janela de edição
 
     def open_add_aluno_window(self):
         """Abre a janela de adição de alunos com validações e tratamento de erros."""
         try:
             self._validate_excel_loaded()
-            data_manager = DataManager(self.main_window.excel_manager)
-            self._setup_add_aluno_window(data_manager)
+            self._setup_add_aluno_window(self.main_window.data_manager)
+        except Exception as e:
+            self._handle_window_error(e)
+
+    def open_edit_aluno_window(self, aluno_data):
+        """Abre a janela de edição de um aluno específico."""
+        try:
+            self._validate_excel_loaded()
+            self._setup_edit_aluno_window(self.main_window.data_manager, aluno_data)
         except Exception as e:
             self._handle_window_error(e)
 
@@ -62,9 +71,42 @@ class WindowManager:
         self.add_aluno_window.exec_()
         self.add_aluno_window = None  # Libera referência após fechar
 
+    def _setup_edit_aluno_window(self, data_manager, aluno_data):
+        """
+        Configura e exibe a janela de edição de um aluno.
+        Garanta que apenas uma janela modal esteja aberta por vez.
+        """
+        # Evita múltiplas janelas abertas
+        if self.edit_aluno_window is not None and self.edit_aluno_window.isVisible():
+            self.edit_aluno_window.raise_()
+            self.edit_aluno_window.activateWindow()
+            return
+
+        self.edit_aluno_window = EditAlunoWindow(
+            parent=self.main_window,
+            data_manager=data_manager,
+            excel_manager=self.main_window.excel_manager,
+            command_manager=self.main_window.command_manager,
+            aluno_data=aluno_data
+        )
+
+        # Conecta todos os sinais necessários
+        self.edit_aluno_window.aluno_editado_signal.connect(
+            self.main_window._update_table
+        )
+        self.edit_aluno_window.aluno_editado_signal.connect(
+            lambda: self.main_window.btn_save.setEnabled(True)
+        )
+
+        self.edit_aluno_window.exec_()
+        self.edit_aluno_window = None  # Libera referência após fechar
+
     def _handle_window_error(self, error):
         """Trata erros genéricos de janela, exibindo mensagem ao usuário e logando detalhes."""
-        self.logger.error(f"Erro na janela de adição: {str(error)}", exc_info=True)
+        try:
+            self.logger.error(f"Erro na janela: {str(error)}", exc_info=True)
+        except Exception:
+            pass
         QMessageBox.critical(
             self.main_window,
             "Erro",
