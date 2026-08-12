@@ -19,7 +19,6 @@ class TableManager:
         self.model.setHorizontalHeaderLabels(["Sobrenome", "Nome do(a) Aluno(a)", "RM"])
         self.proxy_model.setSourceModel(self.model)
         self.table.setModel(self.proxy_model)
-        self.model.itemChanged.connect(self._on_item_changed)
 
         self.current_letter = 'A'
         self.letters = list(string.ascii_uppercase)
@@ -31,6 +30,7 @@ class TableManager:
     def _setup_table(self):
         """Configura a tabela principal com tamanhos fixos para as colunas"""
         self.table.setSortingEnabled(True)
+        self.table.setEditTriggers(QTableView.NoEditTriggers)
         self.table.setCornerButtonEnabled(False)
         self.table.setAlternatingRowColors(True)
         self.table.setSelectionBehavior(QTableView.SelectRows)
@@ -111,11 +111,6 @@ class TableManager:
         self.current_chunk = 0
         self.search_active = False
 
-        try:
-            self.model.itemChanged.disconnect()
-        except Exception:
-            pass
-
         self.model = QStandardItemModel()
         self.model.setHorizontalHeaderLabels(["Sobrenome", "Nome do(a) Aluno(a)", "RM"])
         self.proxy_model.setSourceModel(self.model)
@@ -127,7 +122,6 @@ class TableManager:
 
         self.current_chunk = 1
         self.table.sortByColumn(sort_column, sort_order)
-        self.model.itemChanged.connect(self._on_item_changed)
 
         # Mostra a página da letra atual
         self.set_page_by_letter(self.current_letter)
@@ -179,12 +173,42 @@ class TableManager:
         self.copy_action = QAction("Copiar", self.table)
         self.copy_action.setShortcut("Ctrl+C")
         self.copy_action.triggered.connect(self.copy_cell_content)
+
+        self.edit_action = QAction("Editar", self.table)
+        self.edit_action.setShortcut("Ctrl+E")
+        self.edit_action.triggered.connect(self._on_edit_requested)
+
         self.table.customContextMenuRequested.connect(self._show_context_menu)
+
+    def _on_edit_requested(self):
+        """Chamado quando o usuário clica em 'Editar' no menu de contexto"""
+        if hasattr(self, 'on_edit_row_callback'):
+            selected_rows = set(index.row() for index in self.table.selectionModel().selectedRows())
+            if selected_rows:
+                row = list(selected_rows)[0]
+                aluno_data = self._get_row_data(row)
+                self.on_edit_row_callback(aluno_data)
+
+    def _get_row_data(self, row):
+        """Obtém os dados de uma linha específica"""
+        try:
+            sobrenome = self.model.item(row, 0).text() if self.model.item(row, 0) else ""
+            nome = self.model.item(row, 1).text() if self.model.item(row, 1) else ""
+            rm_item = self.model.item(row, 2)
+            rm = rm_item.data(Qt.UserRole) if rm_item else None
+            return {
+                'Sobrenome': sobrenome,
+                'Nome do(a) Aluno(a)': nome,
+                'RM': rm
+            }
+        except Exception:
+            return {}
 
     def _show_context_menu(self, position):
         if self.table.selectedIndexes():
             menu = QMenu(self.table)
             menu.addAction(self.copy_action)
+            menu.addAction(self.edit_action)
             menu.exec_(self.table.viewport().mapToGlobal(position))
 
     def copy_cell_content(self):
@@ -218,6 +242,14 @@ class TableManager:
             data.append({'Sobrenome': sobrenome, 'Nome do(a) Aluno(a)': nome, 'RM': rm})
         return data
 
+    def get_selected_row_data(self):
+        """Obtém os dados da primeira linha selecionada"""
+        selected_rows = list(set(index.row() for index in self.table.selectionModel().selectedRows()))
+        if not selected_rows:
+            return None
+        row = selected_rows[0]
+        return self._get_row_data(row)
+
     def remove_selected_rows(self, excel_manager, data_manager, message_handler):
         selected_data = self.get_selected_rows_data()
         if not selected_data:
@@ -235,30 +267,6 @@ class TableManager:
         )
         return True
 
-    def _on_item_changed(self, item):
-        if not hasattr(self, 'on_edit_callback'):
-            return
-        proxy_index = item.index()
-        if not proxy_index.isValid():
-            return
-        if proxy_index.model() != self.proxy_model:
-            return
-        source_index = self.proxy_model.mapToSource(proxy_index)
-        if not source_index.isValid():
-            return
-        row = source_index.row()
-        col = source_index.column()
-        model = self.proxy_model.sourceModel()
-        cell_item = model.item(row, col)
-        if cell_item is None:
-            return
-        value = cell_item.text()
-        rm_item = model.item(row, 2)
-        if rm_item is None:
-            return
-        rm = rm_item.data(Qt.UserRole)
-        self.on_edit_callback(row, col, value, rm)
-
     def set_page_by_letter(self, letter):
         """Atualiza a tabela para mostrar apenas alunos cujo sobrenome começa com a letra dada."""
         if not self.full_data is None and not self.full_data.empty:
@@ -266,6 +274,8 @@ class TableManager:
             mask = self.full_data['Sobrenome'].str.upper().str.startswith(self.current_letter)
             filtered = self.full_data[mask]
             self.update_table_with_data(filtered)
+            # Volta o scroll para o topo ao trocar de página
+            self.table.verticalScrollBar().setValue(0)
             # Destaca o botão ativo (se MainWindow tiver page_buttons)
             if hasattr(self, 'main_window') and hasattr(self.main_window, 'page_buttons'):
                 for l, btn in self.main_window.page_buttons.items():
