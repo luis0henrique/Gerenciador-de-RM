@@ -6,6 +6,22 @@
     background-position: center;
 }
 
+/* ===== SIDEBAR ===== */
+#sidebar {
+    background: transparent;
+}
+#sidebar QPushButton {
+    text-align: left;
+    padding: 8px 10px 6px 10px;
+    border: none;
+}
+#sidebar QPushButton:hover {
+    background-color: #e0e0e0;
+}
+#sidebar QPushButton:disabled {
+    color: #9e9e9e;
+}
+
 /* ===== BASE STYLES ===== */
 QWidget {
     font-family: 'Segoe UI', Arial, sans-serif;
