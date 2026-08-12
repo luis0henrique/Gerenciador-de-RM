@@ -1,14 +1,16 @@
 from PyQt5.QtWidgets import (
     QDialog, QVBoxLayout, QHBoxLayout, QTableWidget,
     QPushButton, QLabel, QMessageBox, QHeaderView,
-    QSizePolicy, QWidget, QApplication
+    QSizePolicy, QWidget, QApplication, QFileDialog, QTableWidgetItem
 )
 from PyQt5.QtCore import Qt, pyqtSignal, QTimer
+from PyQt5.QtGui import QColor, QFont
 from utils.ui_helpers import CenterWindowMixin, add_shadow, update_shadows_on_theme_change, TableNavigationMixin, CornerSquare
 from utils.helpers import formatar_nome
 from utils.styles import get_current_stylesheet
 from views.components.dialogs import AlunoDialogs
 from models.command_manager import AddStudentCommand
+from models.import_manager import ImportManager
 
 class CustomMessageBox(QMessageBox):
     """QMessageBox customizado para ignorar Enter/Return no fechamento."""
@@ -28,6 +30,8 @@ class AddAlunoWindow(QDialog, CenterWindowMixin, TableNavigationMixin):
         self.data_manager = data_manager
         self.excel_manager = excel_manager
         self.command_manager = command_manager
+        self.import_manager = ImportManager()
+        self.rms_duplicados_importacao = set()  # Rastreia RMs duplicados da importação
         self._init_ui()
         self._connect_signals()
         self.center_window()
@@ -114,6 +118,7 @@ class AddAlunoWindow(QDialog, CenterWindowMixin, TableNavigationMixin):
         elements_with_shadow = [
             self.table,
             self.btn_add_alunos,
+            self.btn_importar_alunos,
             self.btn_cancel
         ]
         update_shadows_on_theme_change(elements_with_shadow)
@@ -122,18 +127,23 @@ class AddAlunoWindow(QDialog, CenterWindowMixin, TableNavigationMixin):
         """Configura os botões de ação"""
         btn_layout = QHBoxLayout()
 
+        self.btn_importar_alunos = QPushButton("Importar Alunos")
+        self.btn_importar_alunos.setToolTip("Importa alunos de um arquivo .xlsx ou .csv")
         self.btn_add_alunos = QPushButton("Adicionar Alunos(as)")
         self.btn_add_alunos.setToolTip("Valida e adiciona os alunos ao arquivo")
         self.btn_cancel = QPushButton("Cancelar")
         self.btn_cancel.setToolTip("Fecha esta janela sem adicionar alunos")
 
+        self.btn_importar_alunos.setProperty("class", "btn_add_alunos")
         self.btn_add_alunos.setProperty("class", "btn_add_alunos")
         self.btn_cancel.setProperty("class", "btn_cancel")
 
+        add_shadow(self.btn_importar_alunos)
         add_shadow(self.btn_add_alunos)
         add_shadow(self.btn_cancel)
 
         btn_layout.addStretch()
+        btn_layout.addWidget(self.btn_importar_alunos)
         btn_layout.addWidget(self.btn_add_alunos)
         btn_layout.addWidget(self.btn_cancel)
 
@@ -152,6 +162,7 @@ class AddAlunoWindow(QDialog, CenterWindowMixin, TableNavigationMixin):
 
     def _connect_signals(self):
         """Conecta os sinais dos botões"""
+        self.btn_importar_alunos.clicked.connect(self._abrir_dialogo_importacao)
         self.btn_add_alunos.clicked.connect(self._processar_alunos)
         self.btn_cancel.clicked.connect(self.close)
         self.table.keyPressEvent = lambda event: self.handle_table_key_press(event, self.table)
@@ -200,6 +211,11 @@ class AddAlunoWindow(QDialog, CenterWindowMixin, TableNavigationMixin):
             )
 
             self.aluno_adicionado_signal.emit()
+
+            # Auto-save dos dados após adicionar alunos
+            if hasattr(self, 'parent') and self.parent() and hasattr(self.parent(), 'file_ops'):
+                self.parent().file_ops.auto_save()
+
             self.close()
 
         except Exception as e:
@@ -312,3 +328,118 @@ class AddAlunoWindow(QDialog, CenterWindowMixin, TableNavigationMixin):
         msg_box.setIcon(icon)
         msg_box.setStandardButtons(QMessageBox.Ok)
         msg_box.exec_()
+
+    def _abrir_dialogo_importacao(self):
+        """Abre um diálogo para selecionar arquivo de importação"""
+        file_filter = "Arquivos Suportados (*.xlsx *.csv);;Excel (*.xlsx);;CSV (*.csv);;Todos os arquivos (*)"
+        file_path, _ = QFileDialog.getOpenFileName(
+            self,
+            "Importar Alunos",
+            "",
+            file_filter
+        )
+
+        if file_path:
+            self._importar_arquivo(file_path)
+
+    def _importar_arquivo(self, file_path: str):
+        """Importa alunos de um arquivo"""
+        try:
+            self.btn_importar_alunos.setEnabled(False)
+            self.btn_importar_alunos.setText("Importando...")
+            QApplication.processEvents()
+
+            # Importa o arquivo
+            resultado = self.import_manager.importar_arquivo(file_path)
+
+            if not resultado['sucesso']:
+                self._safe_show_message(
+                    "Erro na Importação",
+                    resultado['erro'],
+                    QMessageBox.Critical
+                )
+                return
+
+            alunos = resultado['alunos']
+
+            # Valida alunos importados
+            validacao = self.import_manager.validar_alunos_importados(alunos, self.data_manager)
+
+            rms_duplicados = validacao['rms_duplicados']
+            alunos_validos = validacao['alunos_validos']
+
+            # Mostra aviso de RMs duplicados se houver
+            if rms_duplicados:
+                AlunoDialogs.show_import_duplicate_rms(self, rms_duplicados)
+
+            # Se não há alunos válidos após validação
+            if not alunos_validos:
+                self._safe_show_message(
+                    "Aviso",
+                    "Nenhum aluno válido para importar após validação.",
+                    QMessageBox.Warning
+                )
+                return
+
+            # Mostra confirmação de importação
+            if AlunoDialogs.show_import_confirmation_dialog(
+                self,
+                validacao['total_importados'],
+                validacao['total_validos'],
+                len(rms_duplicados)
+            ):
+                # Preenche a tabela com os alunos válidos
+                self._preencher_tabela_com_importacao(alunos_validos, rms_duplicados)
+                self._safe_show_message(
+                    "Sucesso",
+                    f"{len(alunos_validos)} aluno(s) importado(s) com sucesso!\n\n"
+                    "Revise os dados na tabela. Os RMs duplicados estão destacados em vermelho.",
+                    QMessageBox.Information
+                )
+
+        except Exception as e:
+            self._safe_show_message(
+                "Erro",
+                f"Falha ao importar arquivo:\n{str(e)}",
+                QMessageBox.Critical
+            )
+
+        finally:
+            self.btn_importar_alunos.setEnabled(True)
+            self.btn_importar_alunos.setText("Importar Alunos")
+
+    def _preencher_tabela_com_importacao(self, alunos_validos: list, rms_duplicados: list):
+        """Preenche a tabela com alunos importados e destaca RMs duplicados"""
+        # Limpa a tabela
+        self._limpar_tabela()
+
+        # Cria um conjunto de RMs duplicados para referência rápida
+        self.rms_duplicados_importacao = {int(rm) for rm, _ in rms_duplicados}
+
+        # Preenche a tabela
+        for idx, (nome, rm) in enumerate(alunos_validos):
+            if idx >= self.table.rowCount():
+                break
+
+            # Adiciona nome
+            nome_item = QTableWidgetItem(nome)
+            self.table.setItem(idx, 0, nome_item)
+
+            # Adiciona RM
+            rm_str = str(rm)
+            rm_item = QTableWidgetItem(rm_str)
+
+            # Destaca RMs duplicados em vermelho e negrito
+            if int(rm) in self.rms_duplicados_importacao:
+                font = QFont()
+                font.setBold(True)
+                rm_item.setFont(font)
+                rm_item.setForeground(QColor("red"))
+
+            self.table.setItem(idx, 1, rm_item)
+
+    def _limpar_tabela(self):
+        """Limpa todas as células da tabela"""
+        for row in range(self.table.rowCount()):
+            for col in range(self.table.columnCount()):
+                self.table.setItem(row, col, QTableWidgetItem())
