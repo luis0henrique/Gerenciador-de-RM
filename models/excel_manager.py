@@ -9,17 +9,15 @@ class ExcelManager:
         self.current_path = None
 
     def load_excel(self, file_path: str) -> bool:
+        """Carrega dados de um arquivo Feather"""
         try:
             file = Path(file_path)
             if not file.exists():
                 print(f"Arquivo não encontrado: {file_path}")
                 return False
 
-            if file.stat().st_size > 10_000_000:
-                chunks = pd.read_excel(file_path, chunksize=5000)
-                self.df = pd.concat(chunks, ignore_index=True)
-            else:
-                self.df = pd.read_excel(file_path)
+            # Carrega arquivo Feather
+            self.df = pd.read_feather(file_path)
 
             # Garante as três colunas e ordem correta
             for col in self.columns:
@@ -34,13 +32,14 @@ class ExcelManager:
             return False
 
     def save_excel(self, file_path: str = None) -> bool:
+        """Salva dados em um arquivo Feather"""
         path = file_path or self.current_path
         if not path:
             print("Nenhum caminho de arquivo especificado para salvar.")
             return False
 
         try:
-            self.df.to_excel(path, index=False)
+            self.df.to_feather(path)
             self.current_path = path
             return True
         except Exception as e:
