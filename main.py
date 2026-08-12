@@ -7,87 +7,99 @@ from PyQt5.QtWidgets import QApplication, QSplashScreen
 from PyQt5.QtCore import Qt, QCoreApplication
 from PyQt5.QtGui import QPixmap
 
-def show_splash():
-    """Mostra uma splash screen durante o carregamento."""
-    pixmap = QPixmap("assets/images/splash.png").scaled(555, 426, Qt.KeepAspectRatio)
-    splash = QSplashScreen(pixmap)
-    splash.show()
-    QApplication.processEvents()  # Mantém a aplicação responsiva
-    return splash
+# Constante de módulo — definida antes de qualquer inicialização
+BASE_DIR = Path(__file__).resolve().parent
 
-def setup_logging(debug=False):
+
+def enable_hi_dpi() -> None:
+    """Configura suporte a High DPI antes da criação do QApplication."""
+    QCoreApplication.setAttribute(Qt.AA_EnableHighDpiScaling)
+    QCoreApplication.setAttribute(Qt.AA_UseHighDpiPixmaps)
+    # AA_UseHighDpiPixmaps já ativa o scaling automático; variáveis de
+    # ambiente adicionais podem conflitar — mantemos apenas o necessário.
+    os.environ["QT_ENABLE_HIGHDPI_SCALING"] = "1"
+
+
+def setup_logging(debug: bool = False) -> None:
     """Configura o sistema de logging, limpando o arquivo a cada execução."""
-    log_file = "app.log"
-    with open(log_file, 'w'):
-        pass  # Limpa o arquivo de log existente
+    log_file = BASE_DIR / "app.log"
+    log_file.write_text("")  # Limpa o arquivo anterior de forma segura
 
     log_level = logging.DEBUG if debug else logging.INFO
 
     logging.basicConfig(
         level=log_level,
-        format="%(asctime)s - %(levelname)s - %(message)s",
+        format="%(asctime)s - %(levelname)s - %(name)s - %(message)s",
         handlers=[
             logging.FileHandler(log_file),
-            logging.StreamHandler()
-        ]
+            logging.StreamHandler(sys.stdout),
+        ],
     )
+    logging.info(f"Python {sys.version} | Nível de log: {'DEBUG' if debug else 'INFO'}")
 
-def enable_hi_dpi():
-    """Configurações para suporte a High DPI."""
-    QCoreApplication.setAttribute(Qt.AA_EnableHighDpiScaling)
-    QCoreApplication.setAttribute(Qt.AA_UseHighDpiPixmaps)
-    os.environ["QT_ENABLE_HIGHDPI_SCALING"] = "1"
-    os.environ["QT_SCALE_FACTOR"] = "1"
-    os.environ["QT_AUTO_SCREEN_SCALE_FACTOR"] = "1"
 
-def main():
-    """Função principal de inicialização da aplicação."""
+def show_splash(app: QApplication) -> QSplashScreen | None:
+    """
+    Exibe a splash screen durante o carregamento.
+    Retorna None se a imagem não for encontrada, evitando crash.
+    """
+    splash_path = BASE_DIR / "assets" / "images" / "splash.png"
+    if not splash_path.exists():
+        logging.warning(f"Splash screen não encontrada em: {splash_path}")
+        return None
+
+    pixmap = QPixmap(str(splash_path)).scaled(
+        555, 426, Qt.KeepAspectRatio, Qt.SmoothTransformation
+    )
+    splash = QSplashScreen(pixmap, Qt.WindowStaysOnTopHint)
+    splash.show()
+    app.processEvents()  # Garante que a splash seja renderizada imediatamente
+    return splash
+
+
+def main() -> None:
+    """Ponto de entrada principal da aplicação."""
+    # HiDPI deve ser configurado ANTES da criação do QApplication
     enable_hi_dpi()
 
-    parser = argparse.ArgumentParser()
-    parser.add_argument('--debug', action='store_true', help='Enable debug logging')
+    parser = argparse.ArgumentParser(description="Inicializador da aplicação")
+    parser.add_argument("--debug", action="store_true", help="Ativa logging em modo debug")
     args = parser.parse_args()
 
     setup_logging(debug=args.debug)
-    logging.info("Iniciando configuração da aplicação...")
+    logging.info("Iniciando aplicação...")
+    logging.debug(f"Diretório base: {BASE_DIR}")
 
-    app = None
-    splash = None
-    try:
-        # Configuração inicial de diretório e path
-        BASE_DIR = Path(__file__).parent
-        logging.debug(f"Diretório base definido como: {BASE_DIR}")
-        os.chdir(BASE_DIR)
+    # Muda para o diretório base para que imports relativos funcionem corretamente
+    os.chdir(BASE_DIR)
+    if str(BASE_DIR) not in sys.path:
         sys.path.insert(0, str(BASE_DIR))
 
-        # Cria aplicação Qt
-        logging.info("Criando QApplication...")
-        app = QApplication(sys.argv)
+    app = QApplication(sys.argv)
+    splash = show_splash(app)
 
-        # Mostra splash screen
-        splash = show_splash()
-
-        # Import tardio da janela principal para evitar problemas de inicialização do Qt
-        logging.info("Carregando a janela principal...")
+    try:
+        # Import tardio intencional: MainWindow depende de QApplication já instanciada
+        logging.info("Carregando janela principal...")
         from views.main_window import MainWindow
+
         window = MainWindow()
         window.show()
 
-        # Fecha o splash screen após exibir a janela principal
         if splash is not None:
             splash.finish(window)
 
-        # Executa o loop principal do aplicativo
         exit_code = app.exec_()
-        logging.info(f"Loop de eventos finalizado com código: {exit_code}")
-        sys.exit(exit_code)
+        logging.info(f"Aplicação encerrada com código: {exit_code}")
 
-    except Exception as e:
-        logging.error("Falha durante a inicialização:", exc_info=True)
-        sys.exit(1)
-    finally:
-        if app is not None:
-            app.quit()
+    except Exception:
+        logging.critical("Falha crítica durante a inicialização:", exc_info=True)
+        if splash is not None:
+            splash.close()
+        exit_code = 1
+
+    sys.exit(exit_code)
+
 
 if __name__ == "__main__":
     main()
