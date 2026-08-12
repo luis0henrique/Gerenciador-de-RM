@@ -2,7 +2,7 @@ import os
 import logging
 from PyQt5.QtWidgets import (
     QApplication, QMainWindow, QWidget, QVBoxLayout, QHBoxLayout,
-    QPushButton, QTableView, QLineEdit, QProgressBar, QMessageBox, QGridLayout
+    QPushButton, QTableView, QLineEdit, QProgressBar, QMessageBox, QGridLayout, QSizePolicy
 )
 from PyQt5.QtCore import Qt, QSize
 from PyQt5.QtGui import QIcon
@@ -16,7 +16,6 @@ from views.window_manager import WindowManager
 from views.components.menu import MenuManager
 from views.components.table import TableManager
 from views.components.file_operations import FileOperations
-from PyQt5.QtWidgets import QHBoxLayout, QPushButton, QWidget, QSizePolicy
 import string
 
 class MainWindow(QMainWindow, CenterWindowMixin):
@@ -58,7 +57,7 @@ class MainWindow(QMainWindow, CenterWindowMixin):
         try:
             self.setWindowTitle("Gerenciador de RMs")
             self.setWindowIcon(QIcon('assets/images/icon.png'))
-            self.setMinimumSize(QSize(800, 750))
+            self.setMinimumSize(QSize(600, 750))
             self.MAX_CONTENT_WIDTH = 750
 
             # Widget principal
@@ -74,60 +73,84 @@ class MainWindow(QMainWindow, CenterWindowMixin):
             window_layout = QWidget()
             window_layout_layout = QHBoxLayout(window_layout)
             window_layout_layout.setContentsMargins(0, 0, 0, 0)
+            # add horizontal stretch at start to center the sidebar+content block
             window_layout_layout.addStretch(1)
 
             self.content_widget = QWidget()
             self.content_widget.setMaximumWidth(self.MAX_CONTENT_WIDTH)
             content_layout = QVBoxLayout(self.content_widget)
-            content_layout.setContentsMargins(20, 5, 20, 5)
+            content_layout.setContentsMargins(10, 5, 5, 5)
 
             # Menu
             self.logger.debug("Criando barra de menu...")
             self.menu_manager.create_menu_bar()
 
-            # Toolbar
-            toolbar = QHBoxLayout()
-            toolbar.setSpacing(15)  # Define o espaçamento entre os widgets
-            toolbar.setContentsMargins(0, 4, 0, 4)  # Margens (esquerda, topo, direita, baixo)
-            self.btn_add = QPushButton(" Adicionar")
+            # Sidebar (will host action buttons)
+            # adjust widths: collapsed narrow enough for icon, expanded wider for text
+            self.SIDEBAR_COLLAPSED_WIDTH = 35
+            self.SIDEBAR_EXPANDED_WIDTH = 100
+            self.sidebar_expanded = False
+
+            self.sidebar = QWidget()
+            self.sidebar.setObjectName("sidebar")
+            # allow animation of width by using min/max instead of fixed
+            self.sidebar.setMinimumWidth(self.SIDEBAR_COLLAPSED_WIDTH)
+            self.sidebar.setMaximumWidth(self.SIDEBAR_COLLAPSED_WIDTH)
+            self.sidebar.setSizePolicy(QSizePolicy.Fixed, QSizePolicy.Expanding)
+            sidebar_layout = QVBoxLayout(self.sidebar)
+            sidebar_layout.setContentsMargins(6, 45, 0, 0)
+            sidebar_layout.setSpacing(15)
+            sidebar_layout.setAlignment(Qt.AlignTop)
+
+            # action buttons
+            self.btn_add = QPushButton("Adicionar")
             self.btn_add.setIcon(QIcon("assets/images/add_icon_white.png"))
             self.btn_add.setToolTip("Abre a janela para adicionar novos alunos (Ctrl+A)")
 
-            self.btn_undo = QPushButton(" Desfazer")
+            self.btn_undo = QPushButton("Desfazer")
             self.btn_undo.setIcon(QIcon("assets/images/undo_icon_white.png"))
             self.btn_undo.setToolTip("Desfazer a última ação (Ctrl+Z)")
 
-            self.btn_redo = QPushButton(" Refazer")
+            self.btn_redo = QPushButton("Refazer")
             self.btn_redo.setIcon(QIcon("assets/images/redo_icon_white.png"))
             self.btn_redo.setToolTip("Refazer a última ação desfeita (Ctrl+Y)")
 
-            self.btn_del = QPushButton("  Excluir")
+            self.btn_del = QPushButton("Excluir")
             self.btn_del.setIcon(QIcon("assets/images/del_icon_white.png"))
             self.btn_del.setToolTip("Excluir alunos selecionados (Delete)")
 
-            self.btn_save = QPushButton("  Salvar")
+            self.btn_save = QPushButton("Salvar")
             self.btn_save.setIcon(QIcon("assets/images/save_icon_white.png"))
             self.btn_save.setToolTip("Salva as alterações no arquivo e cria Backups (Ctrl+S)")
 
-            # Configuração do cursor
-            for btn in [self.btn_add, self.btn_undo, self.btn_redo, self.btn_del, self.btn_save]:
+            # store original text for toggling and style buttons for left alignment
+            self._sidebar_button_texts = {
+                self.btn_add: "Adicionar",
+                self.btn_undo: "Desfazer",
+                self.btn_redo: "Refazer",
+                self.btn_del: "Excluir",
+                self.btn_save: "Salvar"
+            }
+
+            for btn in self._sidebar_button_texts:
                 btn.setCursor(Qt.PointingHandCursor)
+                btn.setStyleSheet("text-align:left; padding-left:6px;")
+                sidebar_layout.addWidget(btn)
+            sidebar_layout.addStretch()
 
-            # Estado inicial
-            self.btn_add.setEnabled(False)
-            self.btn_undo.setEnabled(False)
-            self.btn_redo.setEnabled(False)
-            self.btn_del.setEnabled(False)
-            self.btn_save.setEnabled(False)
+            # initial states
+            for btn in self._sidebar_button_texts:
+                btn.setEnabled(False)
+            # hide texts because sidebar starts collapsed
+            for btn in self._sidebar_button_texts:
+                btn.setText("")
 
-            toolbar.addStretch()
-            toolbar.addWidget(self.btn_add)
-            toolbar.addWidget(self.btn_del)
-            toolbar.addWidget(self.btn_undo)
-            toolbar.addWidget(self.btn_redo)
-            toolbar.addWidget(self.btn_save)
-            toolbar.addStretch()
-            content_layout.addLayout(toolbar)
+            # add sidebar and content to main window layout
+            window_layout_layout.addWidget(self.sidebar)
+            # enable hover tracking
+            self.sidebar.installEventFilter(self)
+
+            toolbar = None  # old toolbar removed
 
             # Search
             search_layout = QHBoxLayout()
@@ -177,8 +200,9 @@ class MainWindow(QMainWindow, CenterWindowMixin):
             self.table_manager = TableManager(self.table, self.message_handler)
             content_layout.addWidget(self.table)
 
-            # Sombras
+            # Sombras (lista informativa, o método _get_elements_with_shadow retorna a lista real)
             self.elements_with_shadow = [
+                self.sidebar,
                 self.btn_add,
                 self.btn_del,
                 self.btn_undo,
@@ -190,10 +214,11 @@ class MainWindow(QMainWindow, CenterWindowMixin):
                 self.message_handler.message_widget,
                 self.az_widget
             ]
-            for element in self.elements_with_shadow:
+            for element in self._get_elements_with_shadow():
                 add_shadow(element)
 
             window_layout_layout.addWidget(self.content_widget)
+            # right stretch balances the left stretch and keeps layout centered
             window_layout_layout.addStretch(1)
             main_layout.addWidget(window_layout, 1)
 
@@ -223,8 +248,8 @@ class MainWindow(QMainWindow, CenterWindowMixin):
             self.center_window()
             self.logger.info("UI configurada com sucesso")
 
-            # Connect table edit callback
-            self.table_manager.on_edit_callback = self._handle_table_edit
+            # Connect table edit callback para editar aluno
+            self.table_manager.on_edit_row_callback = self.window_manager.open_edit_aluno_window
 
         except Exception as e:
             self.logger.error("Erro na configuração da UI", exc_info=True)
@@ -272,21 +297,50 @@ class MainWindow(QMainWindow, CenterWindowMixin):
             self.logger.error("Erro nas configurações iniciais", exc_info=True)
             raise
 
+
     def update_ui_on_theme_change(self):
         """Atualiza elementos da UI quando o tema muda."""
-        elements_with_shadow = [
-            self.btn_add,
-            self.btn_del,
-            self.btn_undo,
-            self.btn_redo,
-            self.btn_save,
-            self.search_btn,
-            self.search_field,
-            self.table,
-            self.message_handler.message_widget,
-            self.az_widget
+        update_shadows_on_theme_change(self._get_elements_with_shadow())
+
+    def _expand_sidebar(self):
+        """Mostra a sidebar (com animação) e revela textos."""
+        if self.sidebar_expanded:
+            return
+        self._animate_sidebar(self.SIDEBAR_EXPANDED_WIDTH)
+        for btn, text in self._sidebar_button_texts.items():
+            btn.setText(text)
+        self.sidebar_expanded = True
+
+    def _collapse_sidebar(self):
+        """Recolhe a sidebar e oculta textos."""
+        if not self.sidebar_expanded:
+            return
+        self._animate_sidebar(self.SIDEBAR_COLLAPSED_WIDTH)
+        for btn in self._sidebar_button_texts.keys():
+            btn.setText("")
+        self.sidebar_expanded = False
+
+    def _animate_sidebar(self, target_width):
+        from PyQt5.QtCore import QPropertyAnimation, QEasingCurve
+        start_width = self.sidebar.width()
+        anim = QPropertyAnimation(self.sidebar, b"minimumWidth", self)
+        anim.setDuration(300)
+        anim.setEasingCurve(QEasingCurve.InOutQuart)
+        anim.setStartValue(start_width)
+        anim.setEndValue(target_width)
+        anim.valueChanged.connect(lambda v: self.sidebar.setMaximumWidth(v))
+        anim.finished.connect(lambda: self.sidebar.setMaximumWidth(target_width))
+        anim.finished.connect(lambda: self.sidebar.setMinimumWidth(target_width))
+        self.sidebar_animation = anim
+        anim.start()
+
+    def _get_elements_with_shadow(self):
+        return [
+            self.sidebar,
+            self.btn_add, self.btn_del, self.btn_undo, self.btn_redo, self.btn_save,
+            self.search_btn, self.search_field, self.table,
+            self.message_handler.message_widget, self.az_widget
         ]
-        update_shadows_on_theme_change(elements_with_shadow)
 
     def _update_table(self, data=None):
         if data is None:
@@ -324,11 +378,12 @@ class MainWindow(QMainWindow, CenterWindowMixin):
         """Reage a mudanças no campo de busca"""
         if not text.strip():
             self.search_manager.restore_full_list()
+        self.table_manager.clear_selection()
 
     def _handle_delete_action(self):
         """Manipula a ação de exclusão de alunos de forma assíncrona"""
-        if not hasattr(self, 'table_manager') or not self.table.selectionModel().hasSelection():
-            self.message_handler.show_message("Nenhuma linha selecionada para exclusão", "warning")
+        if not hasattr(self, 'table_manager'):
+            self.message_handler.show_message("Tabela não disponível", "warning")
             return
 
         selected_data = self.table_manager.get_selected_rows_data()
@@ -362,6 +417,9 @@ class MainWindow(QMainWindow, CenterWindowMixin):
         if success:
             self._update_table()
             self.message_handler.show_temporary_message(message, "success")
+            # Auto-save dos dados após operação bem-sucedida
+            if hasattr(self, 'file_ops'):
+                self.file_ops.auto_save()
         else:
             self.message_handler.show_message(message, "error")
 
@@ -382,62 +440,30 @@ class MainWindow(QMainWindow, CenterWindowMixin):
         """Ajusta layout ao redimensionar"""
         super().resizeEvent(event)
         if event.oldSize().width() != event.size().width():
-            content_width = min(self.width(), self.MAX_CONTENT_WIDTH)
+            # calcula largura disponível excluindo a sidebar e um pequeno espaçamento
+            total_width = self.width()
+            sidebar_w = self.sidebar.width() if hasattr(self, 'sidebar') else 0
+            # deixamos uma folga de 20px para as stretches laterais
+            available = total_width - sidebar_w - 20
+            content_width = min(max(0, available), self.MAX_CONTENT_WIDTH)
+            # aplica largura fixa apenas no caso de termos um valor válido
             self.content_widget.setFixedWidth(content_width)
             self.table_manager.resize_columns()
 
     def eventFilter(self, obj, event):
         """Filtra eventos para desselecionar a tabela quando clicar fora"""
+        if obj == self.sidebar:
+            from PyQt5.QtCore import QEvent
+            if event.type() == QEvent.Enter:
+                self._expand_sidebar()
+            elif event.type() == QEvent.Leave:
+                self._collapse_sidebar()
+
         if event.type() == event.MouseButtonPress:
             if not self.table.underMouse():
                 self.table_manager.clear_selection()
 
         return super().eventFilter(obj, event)
-
-    def _handle_table_edit(self, row, col, value, rm_antigo):
-        df = self.excel_manager.df
-
-        match = df[df['RM'] == rm_antigo]
-        if match.empty:
-            self.message_handler.show_message("Registro não encontrado. A tabela pode ter sido modificada.", "error")
-            self._update_table()
-            return
-
-        real_idx = match.index[0]
-        old_value = df.iat[real_idx, col]
-
-        if str(old_value) == value:
-            return
-
-        if col == 2:
-            try:
-                novo_rm = int(value)
-            except ValueError:
-                self.message_handler.show_message("O RM deve ser um número inteiro.", "error")
-                self._update_table()
-                return
-
-            if novo_rm in df['RM'].values and novo_rm != rm_antigo:
-                aluno_existente = df[df['RM'] == novo_rm].iloc[0]['Nome do(a) Aluno(a)']
-                QMessageBox.warning(
-                    self,
-                    "RM Duplicado",
-                    f"Já existe um aluno com o RM {novo_rm}:\n{aluno_existente}\n\nPor favor, verifique o RM na ficha."
-                )
-                self._update_table()
-                return
-
-            value = novo_rm
-
-        edit_command = EditStudentCommand(
-            self.excel_manager,
-            self.data_manager,
-            real_idx,
-            col,
-            old_value,
-            value
-        )
-        self.command_manager.execute_command(edit_command)
 
 if __name__ == "__main__":
     app = QApplication([])
