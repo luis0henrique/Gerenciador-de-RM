@@ -102,3 +102,74 @@ class AlunoDialogs:
         btn_nao.setDefault(True)
 
         return dialog.exec_() == QMessageBox.Yes
+
+    @staticmethod
+    def show_import_duplicate_rms(parent, rms_duplicados):
+        """Exibe aviso de RMs duplicados encontrados na importação."""
+        dialog = QDialog(parent)
+        dialog.setWindowTitle("RMs Duplicados na Importação")
+        dialog.setMinimumSize(600, 400)
+        layout = QVBoxLayout(dialog)
+
+        text_edit = QTextEdit()
+        text_edit.setReadOnly(True)
+
+        message_lines = [
+            "<p><strong>Os seguintes RMs já existem na base de dados e não serão importados:</strong></p>",
+            "<ul style='list-style-type: none; padding-left: 10px;'>"
+        ]
+        message_lines.extend(
+            f"<li>RM <span style='color: #f44336; font-weight: bold;'>{rm}</span> - {nome}</li>"
+            for rm, nome in rms_duplicados
+        )
+        message_lines.append("</ul>")
+        message_lines.append(
+            "<p style='margin-top: 15px;'><em>Clique em 'OK' para continuar com a importação dos demais alunos.</em></p>"
+        )
+
+        text_edit.setHtml("\n".join(message_lines))
+
+        btn_box = QDialogButtonBox()
+        btn_ok = btn_box.addButton("OK", QDialogButtonBox.AcceptRole)
+        btn_ok.setProperty("class", "btn_add_alunos")
+        btn_box.accepted.connect(dialog.accept)
+
+        layout.addWidget(text_edit)
+        layout.addWidget(btn_box)
+        dialog.exec_()
+
+    @staticmethod
+    def show_import_confirmation_dialog(parent, total_importados, total_validos, rms_duplicados_count=0):
+        """Exibe diálogo de confirmação para importação de alunos."""
+        dialog = QDialog(parent)
+        dialog.setWindowTitle("Confirmar Importação")
+        dialog.setMinimumSize(500, 200)
+        layout = QVBoxLayout(dialog)
+
+        message_parts = [f"<b>Resumo da Importação:</b><br><br>"]
+        message_parts.append(f"• Total de registros no arquivo: <b>{total_importados}</b><br>")
+        message_parts.append(f"• Alunos válidos a importar: <b style='color: #4caf50;'>{total_validos}</b><br>")
+
+        if rms_duplicados_count > 0:
+            message_parts.append(f"• RMs duplicados (não importarão): <b style='color: #f44336;'>{rms_duplicados_count}</b><br>")
+
+        message_parts.append("<br><b>Deseja continuar com a importação?</b>")
+
+        label = QLabel("\n".join(message_parts))
+        label.setOpenExternalLinks(True)
+        layout.addWidget(label)
+
+        btn_box = QDialogButtonBox()
+        btn_sim = btn_box.addButton("Sim, Importar", QDialogButtonBox.YesRole)
+        btn_nao = btn_box.addButton("Cancelar", QDialogButtonBox.NoRole)
+
+        btn_sim.setProperty("class", "btn_add_alunos")
+        btn_nao.setProperty("class", "btn_cancel")
+
+        btn_box.accepted.connect(lambda: dialog.done(QMessageBox.Yes))
+        btn_box.rejected.connect(lambda: dialog.done(QMessageBox.No))
+
+        layout.addWidget(btn_box)
+        btn_nao.setDefault(True)
+
+        return dialog.exec_() == QMessageBox.Yes
