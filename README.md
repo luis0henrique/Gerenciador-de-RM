@@ -13,8 +13,37 @@ Um aplicativo desktop para facilitar a organização, busca e manutenção de Re
 - Busca rápida por RM (numérico) ou por nome (insensível a acentos).
 - Validação de RMs (numéricos), detecção de RMs duplicados e aviso de nomes similares.
 - Adição em lote de alunos com validações e feedback visual.
-- Undo / redo para operações de edição (Command Pattern).
+- Undo / redo para operações de edição.
 - Suporte a temas (claro / escuro) via CSS e ajustes para High-DPI.
+
+---
+
+## Execução
+
+Inicie a aplicação a partir do script principal:
+python main.py
+
+Argumentos opcionais:
+--debug    Ativa logging em nível DEBUG (útil para desenvolvimento e diagnóstico)
+
+---
+
+## Como usar
+
+1. Abra o aplicativo.
+2. Carregue uma planilha Excel com, pelo menos, as colunas:
+   - Sobrenome
+   - Nome do(a) Aluno(a)
+   - RM
+   O programa padroniza a ordem das colunas quando necessário.
+
+3. Pesquise:
+   - Por RM: digite apenas números.
+   - Por nome: digite texto (busca insensível a acentos e case-insensitive).
+
+4. Para adicionar alunos em lote, abra a janela "Adicionar Alunos(as) em Lote" e siga as instruções; o sistema validará RMs e mostrará avisos de duplicatas e similaridade de nomes.
+
+5. Salve alterações para gravar em Excel (será atualizado o arquivo especificado).
 
 ---
 
@@ -48,48 +77,7 @@ Dependências principais:
 
 ---
 
-## Execução
-
-Inicie a aplicação a partir do script principal:
-python main.py
-
-Argumentos opcionais:
---debug    Ativa logging em nível DEBUG (útil para desenvolvimento e diagnóstico)
-
----
-
-## Como usar (fluxo básico)
-
-1. Abra o aplicativo.
-2. Carregue uma planilha Excel com, pelo menos, as colunas:
-   - Sobrenome
-   - Nome do(a) Aluno(a)
-   - RM
-
-   O programa padroniza a ordem das colunas quando necessário.
-
-3. Pesquise:
-   - Por RM: digite apenas números.
-   - Por nome: digite texto (busca insensível a acentos e case-insensitive).
-
-4. Para adicionar alunos em lote, abra a janela "Adicionar Alunos(as) em Lote" e siga as instruções; o sistema validará RMs e mostrará avisos de duplicatas e similaridade de nomes.
-
-5. Salve alterações para gravar em Excel (será atualizado o arquivo especificado).
-
----
-
-## Estrutura do repositório (resumida)
-
-- main.py — ponto de entrada
-- models/ — lógica de negócio (ExcelManager, DataManager, SearchManager, CommandManager)
-- views/ — telas e componentes PyQt5
-- utils/ — helpers, estilos e utilitários (CSS em utils/themes)
-- assets/ — imagens (ícone, splash, etc.)
-- resources/, etc.
-
----
-
-## Boas práticas e troubleshooting
+## Troubleshooting
 
 - Se a leitura falhar, verifique se o arquivo .xlsx está íntegro e possui as colunas mínimas.
 - Para arquivos muito grandes, o ExcelManager tenta ler em chunks; caso ainda falhe, pré-filtre ou use uma máquina com mais RAM.
@@ -98,39 +86,5 @@ Argumentos opcionais:
 
 ---
 
-## Empacotamento (opcional)
-
-Para distribuir como executável (Windows/macOS/Linux), use PyInstaller:
-pip install pyinstaller
-pyinstaller --onefile --windowed main.py
-
-Ajuste as opções do PyInstaller para incluir assets (icons, imagens, CSS) na pasta final.
-
----
-
-## Desenvolvimento
-
-- Recomenda-se usar um ambiente virtual.
-- Rodar com `--debug` para ver mais informações de logging.
-- Teste alterações em uma cópia das planilhas antes de operar em dados de produção.
-
----
-
-## Contribuição
-
-Contribuições são bem-vindas:
-- Abra uma issue para discutir mudanças.
-- Envie Pull Requests explicando as modificações e testes realizados.
-
----
-
-## Licença
-
-Consulte o arquivo LICENSE presente na raiz do repositório.
-
----
-
-## Contato
-
-Autor: luis0henrique  
-Repositório: https://github.com/luis0henrique/Gerenciador-de-RM
+## Observação
+Os nomes exibidos nos screenshots deste projeto são **fictícios** e foram gerados automaticamente por um script. Qualquer semelhança com nomes reais é mera coincidência.
